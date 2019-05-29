@@ -1,0 +1,7 @@
+
+.*.swp
+build/cpsl*
+build/CMake*
+build/cmake*
+build/Makefile
+.gdb_history
