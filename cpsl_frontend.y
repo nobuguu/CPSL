@@ -1516,15 +1516,35 @@ Expression:
 LValue:
     IDENTIFIER_TOK
     {
-        $$ = NULL;
+        ParseTree *p = malloc(sizeof(ParseTree));
+        ParseTree *ident = malloc(sizeof(ParseTree));
+        ident->pt_tag = PT_IDENT;
+        ident->pt_union.identifier.name = $1;
+        p->pt_tag = PT_LVALUE;
+        p->pt_union.lvalue.tag = LV_IDENT;
+        p->pt_union.lvalue.lv_union.ident = ident;
+        $$ = p;
     }
     | LValue MEMBER_TOK IDENTIFIER_TOK
     {
-        $$ = NULL;
+        ParseTree *p = malloc(sizeof(ParseTree));
+        ParseTree *ident = malloc(sizeof(ParseTree));
+        ident->pt_tag = PT_IDENT;
+        ident->pt_union.identifier.name = $3;
+        p->pt_tag = PT_LVALUE;
+        p->pt_union.lvalue.tag = LV_MEMBER;
+        p->pt_union.lvalue.lv_union.member.ident = ident;
+        p->pt_union.lvalue.lv_union.member.parent_lv = $1;
+        $$ = p;
     }
     | LValue LBRACKET_TOK Expression RBRACKET_TOK
     {
-        $$ = NULL;
+        ParseTree *p = malloc(sizeof(ParseTree));
+        p->pt_tag = PT_LVALUE;
+        p->pt_union.lvalue.tag = LV_ARRAY;
+        p->pt_union.lvalue.lv_union.array.index_expr = $3;
+        p->pt_union.lvalue.lv_union.array.parent_lv = $1;
+        $$ = p;
     }
 
 %%
