@@ -114,7 +114,8 @@ typedef enum ExpressionTag {
     EXPR_MOD,
     EXPR_NOT,
     EXPR_UMINUS,
-    EXPR_FUNC,
+    EXPR_PAREN,
+    EXPR_FCALL,
     EXPR_CHR,
     EXPR_ORD,
     EXPR_PRED,
@@ -281,14 +282,17 @@ struct ParseTree {
         } assign_stmt;
         struct {
             ParseTree *if_cond;
-            ParseTree *if_sl;
+            ParseTree *if_sl_head;
+            ParseTree *if_sl_tail;
             ParseTree *eil_head;
             ParseTree *eil_tail;
-            ParseTree *else_sl;
+            ParseTree *else_sl_head;
+            ParseTree *else_sl_tail;
         } if_stmt;
         struct {
             ParseTree *ei_cond;
-            ParseTree *ei_sl;
+            ParseTree *ei_sl_head;
+            ParseTree *ei_sl_tail;
             ParseTree *prev;
             ParseTree *next;
         } elseif_l;
@@ -321,7 +325,7 @@ struct ParseTree {
             ParseTree *rl_tail;
         } read_stmt;
         struct {
-            ParseTree *ident;
+            ParseTree *lvalue;
             ParseTree *next;
             ParseTree *prev;
         } read_l;
@@ -357,11 +361,17 @@ struct ParseTree {
                 struct {
                     ParseTree *sub_expr;
                 } un_op;
+                struct {
+                    ParseTree *ident;
+                    ParseTree *arg_l_head;
+                    ParseTree *arg_l_tail;
+                } fcall;
                 ParseTree *lvalue;
                 ParseTree *int_literal;
                 ParseTree *float_literal;
                 ParseTree *char_literal;
                 ParseTree *str_literal;
+                ParseTree *bool_literal;
             } expr_union;
         } expr;
         struct {

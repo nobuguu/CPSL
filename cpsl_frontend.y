@@ -970,250 +970,547 @@ Statement:
 Assignment:
     LValue ASSIGN_TOK Expression
     {
-        $$ = NULL;
+        ParseTree *p = malloc(sizeof(ParseTree));
+        p->pt_tag = PT_ASSIGN_STMT;
+        p->pt_union.assign_stmt.lvalue = $1;
+        p->pt_union.assign_stmt.expr = $3;
+        $$ = p;
     }
 
 IfStatement:
     IF_TOK Expression THEN_TOK StatementList END_TOK
     {
-        $$ = NULL;
+        ParseTree *p = malloc(sizeof(ParseTree));
+        p->pt_tag = PT_IF_STMT;
+        p->pt_union.if_stmt.if_cond = $2;
+        p->pt_union.if_stmt.if_sl_head = $4.list_head;
+        p->pt_union.if_stmt.if_sl_tail = $4.list_tail;
+        p->pt_union.if_stmt.eil_head = NULL;
+        p->pt_union.if_stmt.eil_tail = NULL;
+        p->pt_union.if_stmt.else_sl_head = NULL;
+        p->pt_union.if_stmt.else_sl_tail = NULL;
+        $$ = p;
     }
     | IF_TOK Expression THEN_TOK StatementList ELSE_TOK StatementList END_TOK
     {
-        $$ = NULL;
+        ParseTree *p = malloc(sizeof(ParseTree));
+        p->pt_tag = PT_IF_STMT;
+        p->pt_union.if_stmt.if_cond = $2;
+        p->pt_union.if_stmt.if_sl_head = $4.list_head;
+        p->pt_union.if_stmt.if_sl_tail = $4.list_tail;
+        p->pt_union.if_stmt.eil_head = NULL;
+        p->pt_union.if_stmt.eil_tail = NULL;
+        p->pt_union.if_stmt.else_sl_head = $6.list_head;
+        p->pt_union.if_stmt.else_sl_tail = $6.list_tail;
+        $$ = p;
+    }
+    | IF_TOK Expression THEN_TOK StatementList ElseIfList END_TOK
+    {
+        ParseTree *p = malloc(sizeof(ParseTree));
+        p->pt_tag = PT_IF_STMT;
+        p->pt_union.if_stmt.if_cond = $2;
+        p->pt_union.if_stmt.if_sl_head = $4.list_head;
+        p->pt_union.if_stmt.if_sl_tail = $4.list_tail;
+        p->pt_union.if_stmt.eil_head = $5.list_head;
+        p->pt_union.if_stmt.eil_tail = $5.list_tail;
+        p->pt_union.if_stmt.else_sl_head = NULL;
+        p->pt_union.if_stmt.else_sl_tail = NULL;
+        $$ = p;
     }
     | IF_TOK Expression THEN_TOK StatementList ElseIfList ELSE_TOK StatementList END_TOK
     {
-        $$ = NULL;
+        ParseTree *p = malloc(sizeof(ParseTree));
+        p->pt_tag = PT_IF_STMT;
+        p->pt_union.if_stmt.if_cond = $2;
+        p->pt_union.if_stmt.if_sl_head = $4.list_head;
+        p->pt_union.if_stmt.if_sl_tail = $4.list_tail;
+        p->pt_union.if_stmt.eil_head = $5.list_head;
+        p->pt_union.if_stmt.eil_tail = $5.list_tail;
+        p->pt_union.if_stmt.else_sl_head = $7.list_head;
+        p->pt_union.if_stmt.else_sl_tail = $7.list_tail;
+        $$ = p;
     }
 
 ElseIfList:
     ELSEIF_TOK Expression THEN_TOK StatementList
     {
-        $$.list_head = NULL;
-        $$.list_tail = NULL;
+        ParseTree *p = malloc(sizeof(ParseTree));
+        p->pt_tag = PT_ELSEIF_L;
+        p->pt_union.elseif_l.ei_cond = $2;
+        p->pt_union.elseif_l.ei_sl_head = $4.list_head;
+        p->pt_union.elseif_l.ei_sl_tail = $4.list_tail;
+        p->pt_union.elseif_l.prev = NULL;
+        p->pt_union.elseif_l.next = NULL;
+        $$.list_head = p;
+        $$.list_tail = p;
     }
     | ElseIfList ELSEIF_TOK Expression THEN_TOK StatementList
     {
-        $$.list_head = NULL;
-        $$.list_tail = NULL;
+        ParseTree *p = malloc(sizeof(ParseTree));
+        p->pt_tag = PT_ELSEIF_L;
+        p->pt_union.elseif_l.ei_cond = $3;
+        p->pt_union.elseif_l.ei_sl_head = $5.list_head;
+        p->pt_union.elseif_l.ei_sl_tail = $5.list_tail;
+        p->pt_union.elseif_l.prev = $1.list_tail;
+        p->pt_union.elseif_l.next = NULL;
+        $1.list_tail->pt_union.elseif_l.next = p;
+        $$.list_head = $1.list_head;
+        $$.list_tail = p;
     }
 
 WhileStatement:
     WHILE_TOK Expression DO_TOK StatementList END_TOK
     {
-        $$ = NULL;
+        ParseTree *p = malloc(sizeof(ParseTree));
+        p->pt_tag = PT_WHILE_STMT;
+        p->pt_union.while_stmt.while_cond = $2;
+        p->pt_union.while_stmt.while_sl_head = $4.list_head;
+        p->pt_union.while_stmt.while_sl_tail = $4.list_tail;
+        $$ = p;
     }
 
 RepeatStatement:
     REPEAT_TOK StatementList UNTIL_TOK Expression
     {
-        $$ = NULL;
+        ParseTree *p = malloc(sizeof(ParseTree));
+        p->pt_tag = PT_REPEAT_STMT;
+        p->pt_union.repeat_stmt.repeat_cond = $4;
+        p->pt_union.repeat_stmt.repeat_sl_head = $2.list_head;
+        p->pt_union.repeat_stmt.repeat_sl_tail = $2.list_tail;
+        $$ = p;
     }
 
 ForStatement:
     FOR_TOK IDENTIFIER_TOK ASSIGN_TOK Expression TO_TOK Expression DO_TOK StatementList END_TOK
     {
-        $$ = NULL;
+        ParseTree *p = malloc(sizeof(ParseTree));
+        ParseTree *ident = malloc(sizeof(ParseTree));
+        ident->pt_tag = PT_IDENT;
+        ident->pt_union.identifier.name = $2;
+        p->pt_tag = PT_FOR_STMT;
+        p->pt_union.for_stmt.tag = FOR_UP;
+        p->pt_union.for_stmt.for_ident = ident;
+        p->pt_union.for_stmt.start_expr = $4;
+        p->pt_union.for_stmt.end_expr = $6;
+        p->pt_union.for_stmt.for_sl_head = $8.list_head;
+        p->pt_union.for_stmt.for_sl_tail = $8.list_tail;
+        $$ = p;
     }
     | FOR_TOK IDENTIFIER_TOK ASSIGN_TOK Expression DOWNTO_TOK Expression DO_TOK StatementList END_TOK
     {
-        $$ = NULL;
+        ParseTree *p = malloc(sizeof(ParseTree));
+        ParseTree *ident = malloc(sizeof(ParseTree));
+        ident->pt_tag = PT_IDENT;
+        ident->pt_union.identifier.name = $2;
+        p->pt_tag = PT_FOR_STMT;
+        p->pt_union.for_stmt.tag = FOR_DOWN;
+        p->pt_union.for_stmt.for_ident = ident;
+        p->pt_union.for_stmt.start_expr = $4;
+        p->pt_union.for_stmt.end_expr = $6;
+        p->pt_union.for_stmt.for_sl_head = $8.list_head;
+        p->pt_union.for_stmt.for_sl_tail = $8.list_tail;
+        $$ = p;
     }
 
 StopStatement:
     STOP_TOK
     {
-        $$ = NULL;
+        ParseTree *p = malloc(sizeof(ParseTree));
+        p->pt_tag = PT_STOP_STMT;
+        $$ = p;
     }
 
 ReturnStatement:
     RETURN_TOK
     {
-        $$ = NULL;
+        ParseTree *p = malloc(sizeof(ParseTree));
+        p->pt_tag = PT_RETURN_STMT;
+        p->pt_union.return_stmt.expr = NULL;
+        $$ = p;
     }
     | RETURN_TOK Expression
     {
-        $$ = NULL;
+        ParseTree *p = malloc(sizeof(ParseTree));
+        p->pt_tag = PT_RETURN_STMT;
+        p->pt_union.return_stmt.expr = $2;
+        $$ = p;
     }
 
 ReadStatement:
     READ_TOK LPAREN_TOK ReadList RPAREN_TOK
     {
-        $$ = NULL;
+        ParseTree *p = malloc(sizeof(ParseTree));
+        p->pt_tag = PT_READ_STMT;
+        p->pt_union.read_stmt.rl_head = $3.list_head;
+        p->pt_union.read_stmt.rl_tail = $3.list_tail;
+        $$ = p;
     }
 
 ReadList:
     LValue
     {
-        $$.list_head = NULL;
-        $$.list_tail = NULL;
+        ParseTree *p = malloc(sizeof(ParseTree));
+        p->pt_tag = PT_READ_L;
+        p->pt_union.read_l.lvalue = $1;
+        p->pt_union.read_l.next = NULL;
+        p->pt_union.read_l.prev = NULL;
+        $$.list_head = p;
+        $$.list_tail = p;
     }
     | ReadList COMMA_TOK LValue
     {
-        $$.list_head = NULL;
-        $$.list_tail = NULL;
+        ParseTree *p = malloc(sizeof(ParseTree));
+        p->pt_tag = PT_READ_L;
+        p->pt_union.read_l.lvalue = $3;
+        p->pt_union.read_l.next = NULL;
+        p->pt_union.read_l.prev = $1.list_tail;
+        $1.list_tail->pt_union.read_l.next = p;
+        $$.list_head = $1.list_head;
+        $$.list_tail = p;
     }
 
 WriteStatement:
     WRITE_TOK LPAREN_TOK WriteList RPAREN_TOK
     {
-        $$ = NULL;
+        ParseTree *p = malloc(sizeof(ParseTree));
+        p->pt_tag = PT_WRITE_STMT;
+        p->pt_union.write_stmt.wl_head = $3.list_head;
+        p->pt_union.write_stmt.wl_tail = $3.list_tail;
+        $$ = p;
     }
 
 WriteList:
     Expression
     {
-        $$.list_head = NULL;
-        $$.list_tail = NULL;
+        ParseTree *p = malloc(sizeof(ParseTree));
+        p->pt_tag = PT_WRITE_L;
+        p->pt_union.write_l.expr = $1;
+        p->pt_union.write_l.next = NULL;
+        p->pt_union.write_l.prev = NULL;
+        $$.list_head = p;
+        $$.list_tail = p;
     }
     | WriteList COMMA_TOK Expression
     {
-        $$.list_head = NULL;
-        $$.list_tail = NULL;
+        ParseTree *p = malloc(sizeof(ParseTree));
+        p->pt_tag = PT_WRITE_L;
+        p->pt_union.write_l.expr = $3;
+        p->pt_union.write_l.next = NULL;
+        p->pt_union.write_l.prev = $1.list_tail;
+        $1.list_tail->pt_union.write_l.next = p;
+        $$.list_head = $1.list_head;
+        $$.list_tail = p;
     }
 
 ProcedureCall:
     IDENTIFIER_TOK LPAREN_TOK ArgumentList RPAREN_TOK
     {
-        $$ = NULL;
+        ParseTree *p = malloc(sizeof(ParseTree));
+        ParseTree *ident = malloc(sizeof(ParseTree));
+        ident->pt_tag = PT_IDENT;
+        ident->pt_union.identifier.name = $1;
+        p->pt_tag = PT_PCALL_STMT;
+        p->pt_union.pcall_stmt.ident = ident;
+        p->pt_union.pcall_stmt.al_head = $3.list_head;
+        p->pt_union.pcall_stmt.al_tail = $3.list_tail;
+        $$ = p;
     }
 
 ArgumentList:
     %empty
     {
-        $$.list_head = NULL;
-        $$.list_tail = NULL;
+        ParseTree *p = malloc(sizeof(ParseTree));
+        p->pt_tag = PT_ARG_L;
+        p->pt_union.arg_l.expr = NULL;
+        p->pt_union.arg_l.next = NULL;
+        p->pt_union.arg_l.prev = NULL;
+        $$.list_head = p;
+        $$.list_tail = p;
     }
     | Expression
     {
-        $$.list_head = NULL;
-        $$.list_tail = NULL;
+        ParseTree *p = malloc(sizeof(ParseTree));
+        p->pt_tag = PT_ARG_L;
+        p->pt_union.arg_l.expr = $1;
+        p->pt_union.arg_l.next = NULL;
+        p->pt_union.arg_l.prev = NULL;
+        $$.list_head = p;
+        $$.list_tail = p;
     }
     | ArgumentList COMMA_TOK Expression
     {
-        $$.list_head = NULL;
-        $$.list_tail = NULL;
+        ParseTree *p = malloc(sizeof(ParseTree));
+        p->pt_tag = PT_ARG_L;
+        p->pt_union.arg_l.expr = $3;
+        p->pt_union.arg_l.next = NULL;
+        p->pt_union.arg_l.prev = $1.list_tail;
+        $1.list_head->pt_union.arg_l.next = p;
+        $$.list_head = $1.list_head;
+        $$.list_tail = p;
     }
 
 NullStatement:
     %empty
     {
-        $$ = NULL;
+        ParseTree *p = malloc(sizeof(ParseTree));
+        p->pt_tag = PT_NULL_STMT;
+        $$ = p;
     }
 
 Expression:
     Expression OR_TOK Expression
     {
-        $$ = NULL;
+        ParseTree *p = malloc(sizeof(ParseTree));
+        p->pt_tag = PT_EXPR;
+        p->pt_union.expr.tag = EXPR_OR;
+        p->pt_union.expr.expr_union.bin_op.left = $1;
+        p->pt_union.expr.expr_union.bin_op.right = $3;
+        $$ = p;
     }
     | Expression AND_TOK Expression
     {
-        $$ = NULL;
+        ParseTree *p = malloc(sizeof(ParseTree));
+        p->pt_tag = PT_EXPR;
+        p->pt_union.expr.tag = EXPR_AND;
+        p->pt_union.expr.expr_union.bin_op.left = $1;
+        p->pt_union.expr.expr_union.bin_op.right = $3;
+        $$ = p;
     }
     | Expression EQUALS_TOK Expression
     {
-        $$ = NULL;
+        ParseTree *p = malloc(sizeof(ParseTree));
+        p->pt_tag = PT_EXPR;
+        p->pt_union.expr.tag = EXPR_EQ;
+        p->pt_union.expr.expr_union.bin_op.left = $1;
+        p->pt_union.expr.expr_union.bin_op.right = $3;
+        $$ = p;
     }
     | Expression NEQ_TOK Expression
     {
-        $$ = NULL;
+        ParseTree *p = malloc(sizeof(ParseTree));
+        p->pt_tag = PT_EXPR;
+        p->pt_union.expr.tag = EXPR_NEQ;
+        p->pt_union.expr.expr_union.bin_op.left = $1;
+        p->pt_union.expr.expr_union.bin_op.right = $3;
+        $$ = p;
     }
     | Expression LE_TOK Expression
     {
-        $$ = NULL;
+        ParseTree *p = malloc(sizeof(ParseTree));
+        p->pt_tag = PT_EXPR;
+        p->pt_union.expr.tag = EXPR_LE;
+        p->pt_union.expr.expr_union.bin_op.left = $1;
+        p->pt_union.expr.expr_union.bin_op.right = $3;
+        $$ = p;
     }
     | Expression GE_TOK Expression
     {
-        $$ = NULL;
+        ParseTree *p = malloc(sizeof(ParseTree));
+        p->pt_tag = PT_EXPR;
+        p->pt_union.expr.tag = EXPR_GE;
+        p->pt_union.expr.expr_union.bin_op.left = $1;
+        p->pt_union.expr.expr_union.bin_op.right = $3;
+        $$ = p;
     }
     | Expression LT_TOK Expression
     {
-        $$ = NULL;
+        ParseTree *p = malloc(sizeof(ParseTree));
+        p->pt_tag = PT_EXPR;
+        p->pt_union.expr.tag = EXPR_LT;
+        p->pt_union.expr.expr_union.bin_op.left = $1;
+        p->pt_union.expr.expr_union.bin_op.right = $3;
+        $$ = p;
     }
     | Expression GT_TOK Expression
     {
-        $$ = NULL;
+        ParseTree *p = malloc(sizeof(ParseTree));
+        p->pt_tag = PT_EXPR;
+        p->pt_union.expr.tag = EXPR_GT;
+        p->pt_union.expr.expr_union.bin_op.left = $1;
+        p->pt_union.expr.expr_union.bin_op.right = $3;
+        $$ = p;
     }
     | Expression ADD_TOK Expression
     {
-        $$ = NULL;
+        ParseTree *p = malloc(sizeof(ParseTree));
+        p->pt_tag = PT_EXPR;
+        p->pt_union.expr.tag = EXPR_ADD;
+        p->pt_union.expr.expr_union.bin_op.left = $1;
+        p->pt_union.expr.expr_union.bin_op.right = $3;
+        $$ = p;
     }
     | Expression SUB_TOK Expression
     {
-        $$ = NULL;
+        ParseTree *p = malloc(sizeof(ParseTree));
+        p->pt_tag = PT_EXPR;
+        p->pt_union.expr.tag = EXPR_SUB;
+        p->pt_union.expr.expr_union.bin_op.left = $1;
+        p->pt_union.expr.expr_union.bin_op.right = $3;
+        $$ = p;
     }
     | Expression MUL_TOK Expression
     {
-        $$ = NULL;
+        ParseTree *p = malloc(sizeof(ParseTree));
+        p->pt_tag = PT_EXPR;
+        p->pt_union.expr.tag = EXPR_MUL;
+        p->pt_union.expr.expr_union.bin_op.left = $1;
+        p->pt_union.expr.expr_union.bin_op.right = $3;
+        $$ = p;
     }
     | Expression DIV_TOK Expression
     {
-        $$ = NULL;
+        ParseTree *p = malloc(sizeof(ParseTree));
+        p->pt_tag = PT_EXPR;
+        p->pt_union.expr.tag = EXPR_DIV;
+        p->pt_union.expr.expr_union.bin_op.left = $1;
+        p->pt_union.expr.expr_union.bin_op.right = $3;
+        $$ = p;
     }
     | Expression MOD_TOK Expression
     {
-        $$ = NULL;
+        ParseTree *p = malloc(sizeof(ParseTree));
+        p->pt_tag = PT_EXPR;
+        p->pt_union.expr.tag = EXPR_MOD;
+        p->pt_union.expr.expr_union.bin_op.left = $1;
+        p->pt_union.expr.expr_union.bin_op.right = $3;
+        $$ = p;
     }
     | NOT_TOK Expression
     {
-        $$ = NULL;
+        ParseTree *p = malloc(sizeof(ParseTree));
+        p->pt_tag = PT_EXPR;
+        p->pt_union.expr.tag = EXPR_NOT;
+        p->pt_union.expr.expr_union.un_op.sub_expr = $2;
+        $$ = p;
     }
     | SUB_TOK Expression %prec UMINUS_TOK
     {
-        $$ = NULL;
+        ParseTree *p = malloc(sizeof(ParseTree));
+        p->pt_tag = PT_EXPR;
+        p->pt_union.expr.tag = EXPR_UMINUS;
+        p->pt_union.expr.expr_union.un_op.sub_expr = $2;
+        $$ = p;
     }
     | LPAREN_TOK Expression RPAREN_TOK
     {
-        $$ = NULL;
+        ParseTree *p = malloc(sizeof(ParseTree));
+        p->pt_tag = PT_EXPR;
+        p->pt_union.expr.tag = EXPR_PAREN;
+        p->pt_union.expr.expr_union.un_op.sub_expr = $2;
+        $$ = p;
     }
     | IDENTIFIER_TOK LPAREN_TOK ArgumentList RPAREN_TOK
     {
-        $$ = NULL;
+        ParseTree *p = malloc(sizeof(ParseTree));
+        ParseTree *ident = malloc(sizeof(ParseTree));
+        ident->pt_tag = PT_IDENT;
+        ident->pt_union.identifier.name = $1;
+        p->pt_tag = PT_EXPR;
+        p->pt_union.expr.tag = EXPR_FCALL;
+        p->pt_union.expr.expr_union.fcall.ident = ident;
+        p->pt_union.expr.expr_union.fcall.arg_l_head = $3.list_head;
+        p->pt_union.expr.expr_union.fcall.arg_l_tail = $3.list_tail;
+        $$ = p;
     }
     | CHR_TOK LPAREN_TOK Expression RPAREN_TOK
     {
-        $$ = NULL;
+        ParseTree *p = malloc(sizeof(ParseTree));
+        p->pt_tag = PT_EXPR;
+        p->pt_union.expr.tag = EXPR_CHR;
+        p->pt_union.expr.expr_union.un_op.sub_expr = $3;
+        $$ = p;
     }
     | ORD_TOK LPAREN_TOK Expression RPAREN_TOK
     {
-        $$ = NULL;
+        ParseTree *p = malloc(sizeof(ParseTree));
+        p->pt_tag = PT_EXPR;
+        p->pt_union.expr.tag = EXPR_ORD;
+        p->pt_union.expr.expr_union.un_op.sub_expr = $3;
+        $$ = p;
     }
     | PRED_TOK LPAREN_TOK Expression RPAREN_TOK
     {
-        $$ = NULL;
+        ParseTree *p = malloc(sizeof(ParseTree));
+        p->pt_tag = PT_EXPR;
+        p->pt_union.expr.tag = EXPR_PRED;
+        p->pt_union.expr.expr_union.un_op.sub_expr = $3;
+        $$ = p;
     }
     | SUCC_TOK LPAREN_TOK Expression RPAREN_TOK
     {
-        $$ = NULL;
+        ParseTree *p = malloc(sizeof(ParseTree));
+        p->pt_tag = PT_EXPR;
+        p->pt_union.expr.tag = EXPR_SUCC;
+        p->pt_union.expr.expr_union.un_op.sub_expr = $3;
+        $$ = p;
     }
     | LValue
     {
-        $$ = NULL;
+        ParseTree *p = malloc(sizeof(ParseTree));
+        p->pt_tag = PT_EXPR;
+        p->pt_union.expr.tag = EXPR_LVALUE;
+        p->pt_union.expr.expr_union.lvalue = $1;
+        $$ = p;
     }
     | INT_LITERAL_TOK
     {
-        $$ = NULL;
+        ParseTree *p = malloc(sizeof(ParseTree));
+        ParseTree *lit = malloc(sizeof(ParseTree));
+        lit->pt_tag = PT_INT;
+        lit->pt_union.int_literal.value = $1;
+        p->pt_tag = PT_EXPR;
+        p->pt_union.expr.expr_union.int_literal = lit;
+        $$ = p;
     }
     | FLOAT_LITERAL_TOK
     {
-        $$ = NULL;
+        ParseTree *p = malloc(sizeof(ParseTree));
+        ParseTree *lit = malloc(sizeof(ParseTree));
+        lit->pt_tag = PT_FLOAT;
+        lit->pt_union.float_literal.value = $1;
+        p->pt_tag = PT_EXPR;
+        p->pt_union.expr.expr_union.float_literal = lit;
+        $$ = p;
     }
     | CHAR_LITERAL_TOK
     {
-        $$ = NULL;
+        ParseTree *p = malloc(sizeof(ParseTree));
+        ParseTree *lit = malloc(sizeof(ParseTree));
+        lit->pt_tag = PT_CHAR;
+        lit->pt_union.char_literal.value = $1;
+        p->pt_tag = PT_EXPR;
+        p->pt_union.expr.expr_union.char_literal = lit;
+        $$ = p;
     }
     | STRING_LITERAL_TOK
     {
-        $$ = NULL;
+        ParseTree *p = malloc(sizeof(ParseTree));
+        ParseTree *lit = malloc(sizeof(ParseTree));
+        lit->pt_tag = PT_STR;
+        lit->pt_union.str_literal.value = $1;
+        p->pt_tag = PT_EXPR;
+        p->pt_union.expr.expr_union.str_literal = lit;
+        $$ = p;
     }
     | TRUE_TOK
     {
-        $$ = NULL;
+        ParseTree *p = malloc(sizeof(ParseTree));
+        ParseTree *lit = malloc(sizeof(ParseTree));
+        lit->pt_tag = PT_BOOL;
+        lit->pt_union.bool_literal.value = $1;
+        p->pt_tag = PT_EXPR;
+        p->pt_union.expr.expr_union.bool_literal = lit;
+        $$ = p;
     }
     | FALSE_TOK
     {
-        $$ = NULL;
+        ParseTree *p = malloc(sizeof(ParseTree));
+        ParseTree *lit = malloc(sizeof(ParseTree));
+        lit->pt_tag = PT_BOOL;
+        lit->pt_union.bool_literal.value = $1;
+        p->pt_tag = PT_EXPR;
+        p->pt_union.expr.expr_union.bool_literal = lit;
+        $$ = p;
     }
 
 LValue:

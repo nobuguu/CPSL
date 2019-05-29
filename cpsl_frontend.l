@@ -1,5 +1,6 @@
 
 %{
+#include <stdbool.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include "cpsl_parser.h"
@@ -50,8 +51,8 @@ integer|INTEGER { return INTEGER_TOK; }
 char|CHAR { return CHAR_TOK; }
 float|FLOAT { return FLOAT_TOK; }
 boolean|BOOLEAN { return BOOLEAN_TOK; }
-true|TRUE { return TRUE_TOK; }
-false|FALSE { return FALSE_TOK; }
+true|TRUE { yylval.bool_literal = true; return TRUE_TOK; }
+false|FALSE { yylval.bool_literal = false; return FALSE_TOK; }
 
 \. { return MEMBER_TOK; }
 \( { return LPAREN_TOK; }
