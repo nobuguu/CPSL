@@ -71,6 +71,14 @@ typedef enum TypeTag {
     T_ARRAY
 } TypeTag;
 
+typedef enum SimpleTypeTag {
+    SIMPLE_INT,
+    SIMPLE_CHAR,
+    SIMPLE_FLOAT,
+    SIMPLE_BOOLEAN,
+    SIMPLE_IDENT
+} SimpleTypeTag;
+
 typedef enum StatementTag {
     STMT_ASSIGN,
     STMT_IF,
@@ -211,6 +219,7 @@ struct ParseTree {
             } type_union;
         } type;
         struct {
+            SimpleTypeTag tag;
             ParseTree *ident;
         } simple_type;
         struct {
