@@ -10,7 +10,7 @@
 
 extern int yylex(void);
 extern int yyerror(const char*);
-ParseTree *pt_root;
+Program *pt_root;
 %}
 
 /* Bison declarations */
@@ -23,8 +23,46 @@ ParseTree *pt_root;
 %verbose
 
 %union {
-    ParseTree *pt_node;
-    struct {ParseTree *list_head; ParseTree *list_tail;} pt_list;
+    Program *program_ptr;
+    ConstDecl *c_decl_ptr;
+    struct {ConstDeclList *head; ConstDeclList *tail;} c_decl_l;
+    TypeDecl *t_decl_ptr;
+    struct {TypeDeclList *head; TypeDeclList *tail;} t_decl_l;
+    Type *type_ptr;
+    SimpleType *simple_type_ptr;
+    RecordType *record_type_ptr;
+    struct {RecordTypeList *head; RecordTypeList *tail;} record_type_l;
+    struct {IdentList *head; IdentList *tail;} ident_l;
+    ArrayType *array_type_ptr;
+    VarDecl *v_decl_ptr;
+    struct {VarDeclList *head; VarDeclList *tail;} v_decl_l;
+    SubroutineDecl *s_decl_ptr;
+    struct {SubroutineDeclList *head; SubroutineDeclList *tail;} s_decl_l;
+    ProcedureDecl *p_decl_ptr;
+    FunctionDecl *f_decl_ptr;
+    struct {FormalParameterList *head; FormalParameterList *tail;} fp_l;
+    FormalParameter *fp_ptr;
+    Body *body_ptr;
+    Block *block_ptr;
+    struct {StatementList *head; StatementList *tail;} stmt_l;
+    Statement *stmt_ptr;
+    AssignStatement *assign_ptr;
+    IfStatement *if_ptr;
+    struct {ElseIfList *head; ElseIfList *tail;} elseif_l;
+    WhileStatement *while_ptr;
+    RepeatStatement *repeat_ptr;
+    ForStatement *for_ptr;
+    StopStatement *stop_ptr;
+    ReturnStatement *return_ptr;
+    ReadStatement *read_ptr;
+    struct {ReadList *head; ReadList *tail;} read_l;
+    WriteStatement *write_ptr;
+    struct {WriteList *head; WriteList *tail;} write_l;
+    PCallStatement *pcall_ptr;
+    struct {ArgumentList *head; ArgumentList *tail;} arg_l;
+    NullStatement *null_ptr;
+    Expression *expr_ptr;
+    LValue *lval_ptr;
     bool bool_literal;
     int int_literal;
     float float_literal;
@@ -102,22 +140,52 @@ ParseTree *pt_root;
 %precedence UMINUS_TOK;
 %token LPAREN_TOK;
 
+%type <program_ptr> Program;
+%type <c_decl_ptr> ConstantDecl;
+%type <c_decl_l> ConstantDeclList;
+%type <t_decl_ptr> TypeDecl;
+%type <t_decl_l> TypeDeclList;
+%type <type_ptr> Type;
+%type <simple_type_ptr> SimpleType;
+%type <record_type_ptr> RecordType;
+%type <record_type_l> RecordTypeList;
+%type <il_ptr> IdentList
+%type <array_type_ptr> ArrayType;
+%type <v_decl_ptr> VarDecl;
+%type <vdl_ptr> VarDeclList;
+%type <s_decl_ptr> SubroutineDecl;
+%type <sdl_ptr> SubroutineDeclList;
+%type <p_decl_ptr> ProcedureDecl;
+%type <f_decl_ptr> FunctionDecl;
+%type <fpl_decl> FormalParameterList;
+%type <fp_ptr> FormalParameter;
+%type <body_ptr> Body;
+%type <block_ptr> Block;
+%type <sl_ptr> StatementList;
+%type <stmt_ptr> Statement;
+%type <assign_ptr> Assignment;
+%type <if_ptr> IfStatement;
+%type <eil_ptr> ElseIfList;
+%type <while_ptr> WhileStatement;
+%type <repeat_ptr> RepeatStatement;
+%type <for_ptr> ForStatement;
+%type <stop_ptr> StopStatement;
+%type <return_ptr> ReturnStatement;
+%type <read_ptr> ReadStatement;
+%type <rl_ptr> ReadList;
+%type <write_ptr> WriteStatement;
+%type <wl_ptr> WriteList;
+%type <pcall_ptr> ProcedureCall;
+%type <al_ptr> ArgumentList;
+%type <null_ptr> NullStatement;
+%type <expr_ptr> Expression;
+%type <lval_ptr> LValue;
 %type <int_literal> INT_LITERAL_TOK;
 %type <float_literal> FLOAT_LITERAL_TOK;
 %type <char_literal> CHAR_LITERAL_TOK;
 %type <str_literal> STRING_LITERAL_TOK;
 %type <bool_literal> TRUE_TOK;
 %type <bool_literal> FALSE_TOK;
-%type <pt_node> Program ConstantDecl SubroutineDecl FunctionDecl ProcedureDecl
-%type <pt_node> FormalParameter Body Block TypeDecl Type SimpleType RecordType
-%type <pt_node> ArrayType VarDecl Statement Assignment
-%type <pt_node> IfStatement WhileStatement ForStatement StopStatement ReturnStatement ReadStatement
-%type <pt_node> RepeatStatement
-%type <pt_node> WriteStatement ProcedureCall NullStatement Expression LValue
-%type <str_literal> IDENTIFIER_TOK
-%type <pt_list> ConstantDeclList SubroutineDeclList FormalParameterList
-%type <pt_list> TypeDeclList RecordTypeList IdentList VarDeclList StatementList
-%type <pt_list> ElseIfList ReadList WriteList ArgumentList
 
 %%
 
@@ -126,1514 +194,794 @@ ParseTree *pt_root;
 Program:
     Block MEMBER_TOK
     {
-        ParseTree *p = malloc(sizeof(ParseTree));
-        p->pt_tag = PT_PROGRAM;
-        p->pt_union.program.c_decl = NULL;
-        p->pt_union.program.t_decl = NULL;
-        p->pt_union.program.v_decl = NULL;
-        p->pt_union.program.s_decl = NULL;
-        p->pt_union.program.block = $1;
-        process_symbols(p);
-        pt_root = p;
+        Program *p = malloc(sizeof(Program));
+        p->c_decl = NULL;
+        p->t_decl = NULL;
+        p->v_decl = NULL;
+        p->s_decl = NULL;
+        p->block = $1;
+        $$ = p;
     }
     | ConstantDecl
     {
-        ParseTree *p = malloc(sizeof(ParseTree));
-        p->pt_tag = PT_PROGRAM;
-        p->pt_union.program.c_decl = $1;
-        p->pt_union.program.t_decl = NULL;
-        p->pt_union.program.v_decl = NULL;
-        p->pt_union.program.s_decl = NULL;
-        process_symbols(p);
-        $<pt_node>$ = p;
+        Program *p = malloc(sizeof(Program));
+        p->c_decl = $1;
+        p->t_decl = NULL;
+        p->v_decl = NULL;
+        p->s_decl = NULL;
+        $<program_ptr>$ = p;
     }
     Block MEMBER_TOK
     {
-        ParseTree *p = $<pt_node>2;
-        p->pt_union.program.block = $3;
-        pt_root = p;
+        Program *p = $<program_ptr>2;
+        p->block = $3;
+        $$ = p;
     }
     | TypeDecl
     {
-        ParseTree *p = malloc(sizeof(ParseTree));
-        p->pt_tag = PT_PROGRAM;
-        p->pt_union.program.c_decl = NULL;
-        p->pt_union.program.t_decl = $1;
-        p->pt_union.program.v_decl = NULL;
-        p->pt_union.program.s_decl = NULL;
-        process_symbols(p);
-        $<pt_node>$ = p;
+        Program *p = malloc(sizeof(Program));
+        p->c_decl = NULL;
+        p->t_decl = $1;
+        p->v_decl = NULL;
+        p->s_decl = NULL;
+        $<program_ptr>$ = p;
     }
     Block MEMBER_TOK
     {
-        ParseTree *p = $<pt_node>2;
-        p->pt_union.program.block = $3;
-        pt_root = p;
+        Program *p = $<program_ptr>2;
+        p->block = $3;
+        $$ = p;
     }
     | VarDecl
     {
-        ParseTree *p = malloc(sizeof(ParseTree));
-        p->pt_tag = PT_PROGRAM;
-        p->pt_union.program.c_decl = NULL;
-        p->pt_union.program.t_decl = NULL;
-        p->pt_union.program.v_decl = $1;
-        p->pt_union.program.s_decl = NULL;
-        process_symbols(p);
-        $<pt_node>$ = p;
+        Program *p = malloc(sizeof(Program));
+        p->c_decl = NULL;
+        p->t_decl = NULL;
+        p->v_decl = $1;
+        p->s_decl = NULL;
+        $<program_ptr>$ = p;
     }
     Block MEMBER_TOK
     {
-        ParseTree *p = $<pt_node>2;
-        p->pt_union.program.block = $3;
-        pt_root = p;
+        Program *p = $<program_ptr>2;
+        p->block = $3;
+        $$ = p;
     }
     | SubroutineDecl
     {
-        ParseTree *p = malloc(sizeof(ParseTree));
-        p->pt_tag = PT_PROGRAM;
-        p->pt_union.program.c_decl = NULL;
-        p->pt_union.program.t_decl = NULL;
-        p->pt_union.program.v_decl = NULL;
-        p->pt_union.program.s_decl = $1;
-        process_symbols(p);
-        $<pt_node>$ = p;
+        Program *p = malloc(sizeof(Program));
+        p->c_decl = NULL;
+        p->t_decl = NULL;
+        p->v_decl = NULL;
+        p->s_decl = $1;
+        $<program_ptr>$ = p;
     }
     Block MEMBER_TOK
     {
-        ParseTree *p = $<pt_node>2;
-        p->pt_union.program.block = $3;
-        pt_root = p;
+        Program *p = $<program_ptr>2;
+        p->block = $3;
+        $$ = p;
     }
     | ConstantDecl TypeDecl
     {
-        ParseTree *p = malloc(sizeof(ParseTree));
-        p->pt_tag = PT_PROGRAM;
-        p->pt_union.program.c_decl = $1;
-        p->pt_union.program.t_decl = $2;
-        p->pt_union.program.v_decl = NULL;
-        p->pt_union.program.s_decl = NULL;
-        process_symbols(p);
-        $<pt_node>$ = p;
+        Program *p = malloc(sizeof(Program));
+        p->c_decl = $1;
+        p->t_decl = $2;
+        p->v_decl = NULL;
+        p->s_decl = NULL;
+        $<program_ptr>$ = p;
     }
     Block MEMBER_TOK
     {
-        ParseTree *p = $<pt_node>3;
-        p->pt_union.program.block = $4;
-        pt_root = p;
+        Program *p = $<program_ptr>3;
+        p->block = $4;
+        $$ = p;
     }
     | ConstantDecl VarDecl
     {
-        ParseTree *p = malloc(sizeof(ParseTree));
-        p->pt_tag = PT_PROGRAM;
-        p->pt_union.program.c_decl = $1;
-        p->pt_union.program.t_decl = NULL;
-        p->pt_union.program.v_decl = $2;
-        p->pt_union.program.s_decl = NULL;
-        process_symbols(p);
-        $<pt_node>$ = p;
+        Program *p = malloc(sizeof(Program));
+        p->c_decl = $1;
+        p->t_decl = NULL;
+        p->v_decl = $2;
+        p->s_decl = NULL;
+        $<program_ptr>$ = p;
     }
     Block MEMBER_TOK
     {
-        ParseTree *p = $<pt_node>3;
-        p->pt_union.program.block = $4;
-        pt_root = p;
+        Program *p = $<program_ptr>3;
+        p->block = $4;
+        $$ = p;
     }
     | ConstantDecl SubroutineDecl
     {
-        ParseTree *p = malloc(sizeof(ParseTree));
-        p->pt_tag = PT_PROGRAM;
-        p->pt_union.program.c_decl = $1;
-        p->pt_union.program.t_decl = NULL;
-        p->pt_union.program.v_decl = NULL;
-        p->pt_union.program.s_decl = $2;
-        process_symbols(p);
-        $<pt_node>$ = p;
+        Program *p = malloc(sizeof(Program));
+        p->c_decl = $1;
+        p->t_decl = NULL;
+        p->v_decl = NULL;
+        p->s_decl = $2;
+        $<program_ptr>$ = p;
     }
     Block MEMBER_TOK
     {
-        ParseTree *p = $<pt_node>3;
-        p->pt_union.program.block = $4;
-        pt_root = p;
+        Program *p = $<program_ptr>3;
+        p->block = $4;
+        $$ = p;
     }
     | TypeDecl VarDecl
     {
-        ParseTree *p = malloc(sizeof(ParseTree));
-        p->pt_tag = PT_PROGRAM;
-        p->pt_union.program.c_decl = NULL;
-        p->pt_union.program.t_decl = $1;
-        p->pt_union.program.v_decl = $2;
-        p->pt_union.program.s_decl = NULL;
-        process_symbols(p);
-        $<pt_node>$ = p;
+        Program *p = malloc(sizeof(Program));
+        p->c_decl = NULL;
+        p->t_decl = $1;
+        p->v_decl = $2;
+        p->s_decl = NULL;
+        $<program_ptr>$ = p;
     }
     Block MEMBER_TOK
     {
-        ParseTree *p = $<pt_node>3;
-        p->pt_union.program.block = $4;
+        Program *p = $<program_ptr>3;
+        p->block = $4;
         $$ = p;
     }
     | TypeDecl SubroutineDecl
     {
-        ParseTree *p = malloc(sizeof(ParseTree));
-        p->pt_tag = PT_PROGRAM;
-        p->pt_union.program.c_decl = NULL;
-        p->pt_union.program.t_decl = $1;
-        p->pt_union.program.v_decl = NULL;
-        p->pt_union.program.s_decl = $2;
-        process_symbols(p);
-        $<pt_node>$ = p;
+        Program *p = malloc(sizeof(Program));
+        p->c_decl = NULL;
+        p->t_decl = $1;
+        p->v_decl = NULL;
+        p->s_decl = $2;
+        $<program_ptr>$ = NULL;
     }
     Block MEMBER_TOK
     {
-        ParseTree *p = $<pt_node>3;
-        p->pt_union.program.block = $4;
-        pt_root = p;
+        Program *p = $<program_ptr>3;
+        p->block = $4;
+        $$ = p;
     }
     | VarDecl SubroutineDecl
     {
-        ParseTree *p = malloc(sizeof(ParseTree));
-        p->pt_tag = PT_PROGRAM;
-        p->pt_union.program.c_decl = NULL;
-        p->pt_union.program.t_decl = NULL;
-        p->pt_union.program.v_decl = $1;
-        p->pt_union.program.s_decl = $2;
-        process_symbols(p);
-        $<pt_node>$ = p;
+        Program *p = malloc(sizeof(Program));
+        p->c_decl = NULL;
+        p->t_decl = NULL;
+        p->v_decl = $1;
+        p->s_decl = $2;
+        $<program_ptr>$ = p;
     }
     Block MEMBER_TOK
     {
-        ParseTree *p = $<pt_node>3;
-        p->pt_union.program.block = $4;
-        pt_root = p;
+        Program *p = $<program_ptr>3;
+        p->block = $4;
+        $$ = p;
     }
     | ConstantDecl TypeDecl VarDecl
     {
-        ParseTree *p = malloc(sizeof(ParseTree));
-        p->pt_tag = PT_PROGRAM;
-        p->pt_union.program.c_decl = $1;
-        p->pt_union.program.t_decl = $2;
-        p->pt_union.program.v_decl = $3;
-        p->pt_union.program.s_decl = NULL;
-        process_symbols(p);
-        $<pt_node>$ = p;
+        Program *p = malloc(sizeof(Program));
+        p->c_decl = $1;
+        p->t_decl = $2;
+        p->v_decl = $3;
+        p->s_decl = NULL;
+        $<program_ptr>$ = p;
     }
     Block MEMBER_TOK
     {
-        ParseTree *p = $<pt_node>4;
-        p->pt_union.program.block = $5;
-        pt_root = p;
+        Program *p = $<program_ptr>4;
+        p->block = $5;
+        $$ = p;
     }
     | ConstantDecl TypeDecl SubroutineDecl
     {
-        ParseTree *p = malloc(sizeof(ParseTree));
-        p->pt_tag = PT_PROGRAM;
-        p->pt_union.program.c_decl = $1;
-        p->pt_union.program.t_decl = $2;
-        p->pt_union.program.v_decl = NULL;
-        p->pt_union.program.s_decl = $3;
-        process_symbols(p);
-        $<pt_node>$ = p;
+        Program *p = malloc(sizeof(Program));
+        p->c_decl = $1;
+        p->t_decl = $2;
+        p->v_decl = NULL;
+        p->s_decl = $3;
+        $<program_ptr>$ = p;
     }
     Block MEMBER_TOK
     {
-        ParseTree *p = $<pt_node>4;
-        p->pt_union.program.block = $5;
-        pt_root = p;
+        Program *p = $<program_ptr>4;
+        p->block = $5;
+        $$ = p;
     }
     | ConstantDecl VarDecl SubroutineDecl
     {
-        ParseTree *p = malloc(sizeof(ParseTree));
-        p->pt_tag = PT_PROGRAM;
-        p->pt_union.program.c_decl = $1;
-        p->pt_union.program.t_decl = NULL;
-        p->pt_union.program.v_decl = $2;
-        p->pt_union.program.s_decl = $3;
-        process_symbols(p);
-        $<pt_node>$ = p;
+        Program *p = malloc(sizeof(Program));
+        p->c_decl = $1;
+        p->t_decl = NULL;
+        p->v_decl = $2;
+        p->s_decl = $3;
+        $<program_ptr>$ = p;
     }
     Block MEMBER_TOK
     {
-        ParseTree *p = $<pt_node>4;
-        p->pt_union.program.block = $5;
-        pt_root = p;
+        Program *p = $<program_ptr>4;
+        p->block = $5;
+        $$ = p;
     }
     | TypeDecl VarDecl SubroutineDecl
     {
-        ParseTree *p = malloc(sizeof(ParseTree));
-        p->pt_tag = PT_PROGRAM;
-        p->pt_union.program.c_decl = NULL;
-        p->pt_union.program.t_decl = $1;
-        p->pt_union.program.v_decl = $2;
-        p->pt_union.program.s_decl = $3;
-        process_symbols(p);
-        $<pt_node>$ = p;
+        Program *p = malloc(sizeof(Program));
+        p->c_decl = NULL;
+        p->t_decl = $1;
+        p->v_decl = $2;
+        p->s_decl = $3;
+        $<program_ptr>$ = p;
     }
     Block MEMBER_TOK
     {
-        ParseTree *p = $<pt_node>4;
-        p->pt_union.program.block = $5;
-        pt_root = p;
+        Program *p = $<program_ptr>4;
+        p->block = $5;
+        $$ = p;
     }
     | ConstantDecl TypeDecl VarDecl SubroutineDecl
     {
-        ParseTree *p = malloc(sizeof(ParseTree));
-        p->pt_tag = PT_PROGRAM;
-        p->pt_union.program.c_decl = $1;
-        p->pt_union.program.t_decl = $2;
-        p->pt_union.program.v_decl = $3;
-        p->pt_union.program.s_decl = $4;
-        process_symbols(p);
-        $<pt_node>$ = p;
+        Program *p = malloc(sizeof(Program));
+        p->c_decl = $1;
+        p->t_decl = $2;
+        p->v_decl = $3;
+        p->s_decl = $4;
+        $<program_ptr>$ = p;
     }
     Block MEMBER_TOK
     {
-        ParseTree *p = $<pt_node>5;
-        p->pt_union.program.block = $6;
-        pt_root = p;
+        Program *p = $<program_ptr>5;
+        p->block = $6;
+        $$ = p;
     }
 
 ConstantDecl:
     CONST_TOK ConstantDeclList
     {
-        ParseTree *p = malloc(sizeof(ParseTree));
-        p->pt_tag = PT_C_DECL;
-        p->pt_union.c_decl.cdl_head = $2.list_head;
-        p->pt_union.c_decl.cdl_tail = $2.list_tail;
-        $$ = p;
+        ConstDecl *c_decl = malloc(sizeof(ConstDecl));
+        c_decl->cdl_head = $2.head;
+        c_decl->cdl_tail = $2.tail;
+        $$ = c_decl;
     }
 
 ConstantDeclList:
     IDENTIFIER_TOK EQUALS_TOK Expression SEMICOLON_TOK
     {
-        ParseTree *p = malloc(sizeof(ParseTree));
-        ParseTree *ident = malloc(sizeof(ParseTree));
-        p->pt_tag = PT_C_DECL_L;
-        ident->pt_tag = PT_IDENT;
-        ident->pt_union.identifier.name = strdup($1);
-        p->pt_union.c_decl_l.next = NULL;
-        p->pt_union.c_decl_l.prev = NULL;
-        p->pt_union.c_decl_l.ident = ident;
-        p->pt_union.c_decl_l.expr = $3;
-
-        //decl, insert ident into symbol table
-        add_to_table(ST_CONST, ident, p);
-
-        $$.list_head = p;
-        $$.list_tail = p;
+        $$.head = NULL;
+        $$.tail = NULL;
     }
     | ConstantDeclList IDENTIFIER_TOK EQUALS_TOK Expression SEMICOLON_TOK
     {
-        ParseTree *p = malloc(sizeof(ParseTree));
-        ParseTree *ident = malloc(sizeof(ParseTree));
-        p->pt_tag = PT_C_DECL_L;
-        ident->pt_tag = PT_IDENT;
-        ident->pt_union.identifier.name = strdup($2);
-        p->pt_union.c_decl_l.next = NULL;
-        p->pt_union.c_decl_l.prev = $1.list_tail;
-        p->pt_union.c_decl_l.ident = ident;
-        p->pt_union.c_decl_l.expr = $4;
-
-        add_to_table(ST_CONST, ident, p);
-        $$.list_tail->pt_union.c_decl_l.next = p;
-        $$.list_tail = p;
-        $$.list_head = $1.list_head;
+        $$.head = NULL;
+        $$.tail = NULL;
     }
 
 SubroutineDecl:
     SubroutineDeclList
     {
-        ParseTree *p = malloc(sizeof(ParseTree));
-        p->pt_tag = PT_S_DECL;
-        p->pt_union.s_decl.sdl_head = $1.list_head;
-        p->pt_union.s_decl.sdl_tail = $1.list_tail;
-        $$ = p;
+        $$ = NULL;
     }
 
 SubroutineDeclList:
     ProcedureDecl
     {
-        ParseTree *p = malloc(sizeof(ParseTree));
-        p->pt_tag = PT_S_DECL_L;
-        p->pt_union.s_decl_l.sd_tag = SD_PROCEDURE;
-        p->pt_union.s_decl_l.sdl_union.p_decl = $1;
-        p->pt_union.s_decl_l.prev = NULL;
-        p->pt_union.s_decl_l.next = NULL;
-        $$.list_head = p;
-        $$.list_tail = p;
+        $$ = NULL;
     }
     | FunctionDecl
     {
-        ParseTree *p = malloc(sizeof(ParseTree));
-        p->pt_tag = PT_S_DECL_L;
-        p->pt_union.s_decl_l.sd_tag = SD_FUNCTION;
-        p->pt_union.s_decl_l.sdl_union.f_decl = $1;
-        p->pt_union.s_decl_l.prev = NULL;
-        p->pt_union.s_decl_l.next = NULL;
-        $$.list_head = p;
-        $$.list_tail = p;
+        $$ = NULL;
     }
     | SubroutineDeclList ProcedureDecl
     {
-        ParseTree *p = malloc(sizeof(ParseTree));
-        p->pt_tag = PT_S_DECL_L;
-        p->pt_union.s_decl_l.sd_tag = SD_PROCEDURE;
-        p->pt_union.s_decl_l.sdl_union.p_decl = $2;
-        p->pt_union.s_decl_l.prev = $1.list_tail;
-        p->pt_union.s_decl_l.next = NULL;
-        $$.list_head = $1.list_head;
-        $1.list_tail->pt_union.s_decl_l.next = p;
-        $$.list_tail = p;
+        $$ = NULL;
     }
     | SubroutineDeclList FunctionDecl
     {
-        ParseTree *p = malloc(sizeof(ParseTree));
-        p->pt_tag = PT_S_DECL_L;
-        p->pt_union.s_decl_l.sd_tag = SD_FUNCTION;
-        p->pt_union.s_decl_l.sdl_union.f_decl = $2;
-        p->pt_union.s_decl_l.prev = $1.list_tail;
-        p->pt_union.s_decl_l.next = NULL;
-        $$.list_head = $1.list_head;
-        $1.list_tail->pt_union.s_decl_l.next = p;
-        $$.list_tail = p;
+        $$ = NULL;
     }
 
 ProcedureDecl:
     PROCEDURE_TOK IDENTIFIER_TOK LPAREN_TOK FormalParameterList RPAREN_TOK SEMICOLON_TOK FORWARD_TOK SEMICOLON_TOK
     {
-        ParseTree *p = malloc(sizeof(ParseTree));
-        ParseTree *ident = malloc(sizeof(ParseTree));
-        ident->pt_tag = PT_IDENT;
-        ident->pt_union.identifier.name = $2;
-        p->pt_tag = PT_P_DECL;
-        p->pt_union.p_decl.ident = ident;
-        p->pt_union.p_decl.fpl_head = $4.list_head;
-        p->pt_union.p_decl.fpl_tail = $4.list_tail;
-        p->pt_union.p_decl.body = NULL;
-
-        add_to_table(ST_SUB, ident, p);
-        $$ = p;
+        $$ = NULL;
     }
     | PROCEDURE_TOK IDENTIFIER_TOK LPAREN_TOK FormalParameterList RPAREN_TOK SEMICOLON_TOK Body SEMICOLON_TOK
     {
-        ParseTree *p = malloc(sizeof(ParseTree));
-        ParseTree *ident = malloc(sizeof(ParseTree));
-        ident->pt_tag = PT_IDENT;
-        ident->pt_union.identifier.name = $2;
-        p->pt_tag = PT_P_DECL;
-        p->pt_union.p_decl.ident = ident;
-        p->pt_union.p_decl.fpl_head = $4.list_head;
-        p->pt_union.p_decl.fpl_tail = $4.list_tail;
-        p->pt_union.p_decl.body = $7;
-
-        add_to_table(ST_SUB, ident, p);
-        $$ = p;
+        $$ = NULL;
     }
 
 FunctionDecl:
     FUNCTION_TOK IDENTIFIER_TOK LPAREN_TOK FormalParameterList RPAREN_TOK COLON_TOK Type SEMICOLON_TOK FORWARD_TOK SEMICOLON_TOK
     {
-        ParseTree *p = malloc(sizeof(ParseTree));
-        ParseTree *ident = malloc(sizeof(ParseTree));
-        ident->pt_tag = PT_IDENT;
-        ident->pt_union.identifier.name = $2;
-        p->pt_tag = PT_F_DECL;
-        p->pt_union.f_decl.ident = ident;
-        p->pt_union.f_decl.fpl_head = $4.list_head;
-        p->pt_union.f_decl.fpl_tail = $4.list_tail;
-        p->pt_union.f_decl.return_t = $7;
-        p->pt_union.f_decl.body = NULL;
-
-        add_to_table(ST_SUB, ident, p);
-        $$ = p;
+        $$ = NULL;
     }
     | FUNCTION_TOK IDENTIFIER_TOK LPAREN_TOK FormalParameterList RPAREN_TOK COLON_TOK Type SEMICOLON_TOK Body SEMICOLON_TOK
     {
-        ParseTree *p = malloc(sizeof(ParseTree));
-        ParseTree *ident = malloc(sizeof(ParseTree));
-        ident->pt_tag = PT_IDENT;
-        ident->pt_union.identifier.name = $2;
-        p->pt_tag = PT_F_DECL;
-        p->pt_union.f_decl.ident = ident;
-        p->pt_union.f_decl.fpl_head = $4.list_head;
-        p->pt_union.f_decl.fpl_tail = $4.list_tail;
-        p->pt_union.f_decl.return_t = $7;
-        p->pt_union.f_decl.body = $9;
-
-        add_to_table(ST_SUB, ident, p);
-        $$ = p;
+        $$ = NULL;
     }
 
 FormalParameterList:
     %empty
     {
-        $$.list_head = NULL;
-        $$.list_tail = NULL;
+        $$ = NULL;
     }
     | FormalParameter
     {
-        ParseTree *p = malloc(sizeof(ParseTree));
-        p->pt_tag = PT_FORMAL_PARAM_L;
-        p->pt_union.formal_param_l.param = $1;
-        p->pt_union.formal_param_l.next = NULL;
-        p->pt_union.formal_param_l.prev = NULL;
-        $$.list_head = p;
-        $$.list_tail = p;
+        $$ = NULL;
     }
     | FormalParameterList SEMICOLON_TOK FormalParameter
     {
-        ParseTree *p = malloc(sizeof(ParseTree));
-        p->pt_tag = PT_FORMAL_PARAM_L;
-        p->pt_union.formal_param_l.param = $3;
-        p->pt_union.formal_param_l.next = NULL;
-        p->pt_union.formal_param_l.prev = $1.list_tail;
-        $1.list_tail->pt_union.formal_param_l.next = p;
-        $$.list_tail = p;
-        $$.list_head = $1.list_head;
+        $$ = NULL;
     }
 
 FormalParameter:
     IdentList COLON_TOK Type
     {
-        ParseTree *p = malloc(sizeof(ParseTree));
-        p->pt_tag = PT_FORMAL_PARAM;
-        p->pt_union.formal_param.fp_tag = FP_VAR;
-        p->pt_union.formal_param.il_head = $1.list_head;
-        p->pt_union.formal_param.il_tail = $1.list_tail;
-        p->pt_union.formal_param.type = $3;
-        $$ = p;
+        $$ = NULL;
     }
     | VAR_TOK IdentList COLON_TOK Type
     {
-        ParseTree *p = malloc(sizeof(ParseTree));
-        p->pt_tag = PT_FORMAL_PARAM;
-        p->pt_union.formal_param.fp_tag = FP_VAR;
-        p->pt_union.formal_param.il_head = $2.list_head;
-        p->pt_union.formal_param.il_tail = $2.list_tail;
-        p->pt_union.formal_param.type = $4;
-        $$ = p;
+        $$ = NULL;
     }
     | REF_TOK IdentList COLON_TOK Type
     {
-        ParseTree *p = malloc(sizeof(ParseTree));
-        p->pt_tag = PT_FORMAL_PARAM;
-        p->pt_union.formal_param.fp_tag = FP_REF;
-        p->pt_union.formal_param.il_head = $2.list_head;
-        p->pt_union.formal_param.il_tail = $2.list_tail;
-        p->pt_union.formal_param.type = $4;
-        $$ = p;
+        $$ = NULL;
     }
 
 /* TODO will have to add mid-rule actions here, too */
 Body:
     Block
     {
-        ParseTree *p = malloc(sizeof(ParseTree));
-        p->pt_tag = PT_BLOCK;
-        p->pt_union.body.c_decl = NULL;
-        p->pt_union.body.t_decl = NULL;
-        p->pt_union.body.v_decl = NULL;
-        p->pt_union.body.block = $1;
-        $$ = p;
+        $$ = NULL;
     }
     | ConstantDecl Block
     {
-        ParseTree *p = malloc(sizeof(ParseTree));
-        p->pt_tag = PT_BLOCK;
-        p->pt_union.body.c_decl = $1;
-        p->pt_union.body.t_decl = NULL;
-        p->pt_union.body.v_decl = NULL;
-        p->pt_union.body.block = $2;
-        $$ = p;
+        $$ = NULL;
     }
     | TypeDecl Block
     {
-        ParseTree *p = malloc(sizeof(ParseTree));
-        p->pt_tag = PT_BLOCK;
-        p->pt_union.body.c_decl = NULL;
-        p->pt_union.body.t_decl = $1;
-        p->pt_union.body.v_decl = NULL;
-        p->pt_union.body.block = $2;
-        $$ = p;
+        $$ = NULL;
     }
     | VarDecl Block
     {
-        ParseTree *p = malloc(sizeof(ParseTree));
-        p->pt_tag = PT_BLOCK;
-        p->pt_union.body.c_decl = NULL;
-        p->pt_union.body.t_decl = NULL;
-        p->pt_union.body.v_decl = $1;
-        p->pt_union.body.block = $2;
-        $$ = p;
+        $$ = NULL;
     }
     | ConstantDecl TypeDecl Block
     {
-        ParseTree *p = malloc(sizeof(ParseTree));
-        p->pt_tag = PT_BLOCK;
-        p->pt_union.body.c_decl = $1;
-        p->pt_union.body.t_decl = $2;
-        p->pt_union.body.v_decl = NULL;
-        p->pt_union.body.block = $3;
-        $$ = p;
+        $$ = NULL;
     }
     | ConstantDecl VarDecl Block
     {
-        ParseTree *p = malloc(sizeof(ParseTree));
-        p->pt_tag = PT_BLOCK;
-        p->pt_union.body.c_decl = $1;
-        p->pt_union.body.t_decl = NULL;
-        p->pt_union.body.v_decl = $2;
-        p->pt_union.body.block = $3;
-        $$ = p;
+        $$ = NULL;
     }
     | TypeDecl VarDecl Block
     {
-        ParseTree *p = malloc(sizeof(ParseTree));
-        p->pt_tag = PT_BLOCK;
-        p->pt_union.body.c_decl = NULL;
-        p->pt_union.body.t_decl = $1;
-        p->pt_union.body.v_decl = $2;
-        p->pt_union.body.block = $3;
-        $$ = p;
+        $$ = NULL;
     }
     | ConstantDecl TypeDecl VarDecl Block
     {
-        ParseTree *p = malloc(sizeof(ParseTree));
-        p->pt_tag = PT_BLOCK;
-        p->pt_union.body.c_decl = $1;
-        p->pt_union.body.t_decl = $2;
-        p->pt_union.body.v_decl = $3;
-        p->pt_union.body.block = $4;
-        $$ = p;
+        $$ = NULL;
     }
 
 Block:
     BEGIN_TOK StatementList END_TOK
     {
-        ParseTree *p = malloc(sizeof(ParseTree));
-        p->pt_tag = PT_BLOCK;
-        p->pt_union.block.sl_head = $2.list_head;
-        p->pt_union.block.sl_tail = $2.list_tail;
-        $$ = p;
+        $$ = NULL;
     }
 
 TypeDecl:
     TYPE_TOK TypeDeclList
     {
-        ParseTree *p = malloc(sizeof(ParseTree));
-        p->pt_tag = PT_T_DECL;
-        p->pt_union.t_decl.tdl_head = $2.list_head;
-        p->pt_union.t_decl.tdl_tail = $2.list_tail;
+        $$ = NULL;
     }
 
 TypeDeclList:
     IDENTIFIER_TOK EQUALS_TOK Type SEMICOLON_TOK
     {
-        ParseTree *p = malloc(sizeof(ParseTree));
-        ParseTree *ident = malloc(sizeof(ParseTree));
-        ident->pt_tag = PT_IDENT;
-        ident->pt_union.identifier.name = $1;
-        p->pt_tag = PT_T_DECL_L;
-        p->pt_union.t_decl_l.ident = ident;
-        p->pt_union.t_decl_l.type = $3;
-        p->pt_union.t_decl_l.next = NULL;
-        p->pt_union.t_decl_l.prev = NULL;
-        $$.list_head = p;
-        $$.list_tail = p;
+        $$.head = NULL;
+        $$.tail = NULL;
     }
     | TypeDeclList IDENTIFIER_TOK EQUALS_TOK Type SEMICOLON_TOK
     {
-        ParseTree *p = malloc(sizeof(ParseTree));
-        ParseTree *ident = malloc(sizeof(ParseTree));
-        ident->pt_tag = PT_IDENT;
-        ident->pt_union.identifier.name = $2;
-        p->pt_tag = PT_T_DECL_L;
-        p->pt_union.t_decl_l.ident = ident;
-        p->pt_union.t_decl_l.type = $4;
-        p->pt_union.t_decl_l.next = NULL;
-        $1.list_tail->pt_union.t_decl_l.next = p;
-        p->pt_union.t_decl_l.prev = $1.list_tail;
-        $$.list_head = $1.list_head;
-        $$.list_tail = p;
+        $$.head = NULL;
+        $$.tail = NULL;
     }
 
 Type:
     SimpleType
     {
-        ParseTree *p = malloc(sizeof(ParseTree));
-        p->pt_tag = PT_TYPE;
-        p->pt_union.type.tag = T_SIMPLE;
-        p->pt_union.type.type_union.simple = $1;
-        $$ = p;
+        $$ = NULL;
     }
     | RecordType
     {
-        ParseTree *p = malloc(sizeof(ParseTree));
-        p->pt_tag = PT_TYPE;
-        p->pt_union.type.tag = T_RECORD;
-        p->pt_union.type.type_union.record = $1;
-        $$ = p;
+        $$ = NULL;
     }
     | ArrayType
     {
-        ParseTree *p = malloc(sizeof(ParseTree));
-        p->pt_tag = PT_TYPE;
-        p->pt_union.type.tag = T_ARRAY;
-        p->pt_union.type.type_union.array = $1;
-        $$ = p;
+        $$ = NULL;
     }
 
 SimpleType:
     INTEGER_TOK
     {
-        ParseTree *p = malloc(sizeof(ParseTree));
-        p->pt_tag = PT_SIMPLE_TYPE;
-        p->pt_union.simple_type.tag = SIMPLE_INT;
-        p->pt_union.simple_type.ident = NULL;
-        $$ = p;
+        $$ = NULL;
     }
     | CHAR_TOK
     {
-        ParseTree *p = malloc(sizeof(ParseTree));
-        p->pt_tag = PT_SIMPLE_TYPE;
-        p->pt_union.simple_type.tag = SIMPLE_CHAR;
-        p->pt_union.simple_type.ident = NULL;
-        $$ = p;
+        $$ = NULL;
     }
     | FLOAT_TOK
     {
-        ParseTree *p = malloc(sizeof(ParseTree));
-        p->pt_tag = PT_SIMPLE_TYPE;
-        p->pt_union.simple_type.tag = SIMPLE_FLOAT;
-        p->pt_union.simple_type.ident = NULL;
-        $$ = p;
+        $$ = NULL;
     }
     | BOOLEAN_TOK
     {
-        ParseTree *p = malloc(sizeof(ParseTree));
-        p->pt_tag = PT_SIMPLE_TYPE;
-        p->pt_union.simple_type.tag = SIMPLE_BOOLEAN;
-        p->pt_union.simple_type.ident = NULL;
-        $$ = p;
+        $$ = NULL;
     }
     | IDENTIFIER_TOK
     {
-        ParseTree *p = malloc(sizeof(ParseTree));
-        ParseTree *ident = lookup_ident_by_name(ST_TYPE, $1);
-        p->pt_tag = PT_SIMPLE_TYPE;
-        p->pt_union.simple_type.tag = SIMPLE_IDENT;
-        p->pt_union.simple_type.ident = ident;
-        $$ = p;
+        $$ = NULL;
     }
 
 RecordType:
     RECORD_TOK END_TOK
     {
-        ParseTree *p = malloc(sizeof(ParseTree));
-        p->pt_tag = PT_RECORD_TYPE;
-        p->pt_union.record_type.rtl_head = NULL;
-        p->pt_union.record_type.rtl_tail = NULL;
-        $$ = p;
+        $$ = NULL;
     }
     | RECORD_TOK RecordTypeList END_TOK
     {
-        ParseTree *p = malloc(sizeof(ParseTree));
-        p->pt_tag = PT_RECORD_TYPE;
-        p->pt_union.record_type.rtl_head = $2.list_head;
-        p->pt_union.record_type.rtl_tail = $2.list_tail;
-        $$ = p;
+        $$ = NULL;
     }
 
 RecordTypeList:
     IdentList COLON_TOK Type SEMICOLON_TOK
     {
-        ParseTree *p = malloc(sizeof(ParseTree));
-        p->pt_tag = PT_RECORD_TYPE_L;
-        p->pt_union.record_type_l.il_head = $1.list_head;
-        p->pt_union.record_type_l.il_tail = $1.list_tail;
-        p->pt_union.record_type_l.type = $3;
-        p->pt_union.record_type_l.next = NULL;
-        p->pt_union.record_type_l.prev = NULL;
-        $$.list_head = p;
-        $$.list_tail = p;
+        $$.head = NULL;
+        $$.tail = NULL;
     }
     | RecordTypeList IdentList COLON_TOK Type SEMICOLON_TOK
     {
-        ParseTree *p = malloc(sizeof(ParseTree));
-        p->pt_tag = PT_RECORD_TYPE_L;
-        p->pt_union.record_type_l.il_head = $2.list_head;
-        p->pt_union.record_type_l.il_tail = $2.list_tail;
-        p->pt_union.record_type_l.type = $4;
-        p->pt_union.record_type_l.next = NULL;
-        p->pt_union.record_type_l.prev = $1.list_tail;
-        $1.list_tail->pt_union.record_type_l.next = p;
-        $$.list_head = $1.list_head;
-        $$.list_tail = p;
+        $$.head = NULL;
+        $$.tail = NULL;
     }
 
 ArrayType:
     ARRAY_TOK LBRACKET_TOK Expression COLON_TOK Expression RBRACKET_TOK OF_TOK Type
     {
-        ParseTree *p = malloc(sizeof(ParseTree));
-        p->pt_tag = PT_ARRAY_TYPE;
-        p->pt_union.array_type.begin_expr = $3;
-        p->pt_union.array_type.end_expr = $5;
-        p->pt_union.array_type.type = $8;
-        $$ = p;
+        $$ = NULL;
     }
 
 IdentList:
     IDENTIFIER_TOK
     {
-        ParseTree *p = malloc(sizeof(ParseTree));
-        ParseTree *ident = malloc(sizeof(ParseTree));
-        ident->pt_tag = PT_IDENT;
-        ident->pt_union.identifier.name = $1;
-        p->pt_tag = PT_IDENT_L;
-        p->pt_union.ident_l.ident = ident;
-        p->pt_union.ident_l.next = NULL;
-        p->pt_union.ident_l.prev = NULL;
-        $$.list_head = p;
-        $$.list_tail = p;
+        $$ = NULL;
     }
     | IdentList COMMA_TOK IDENTIFIER_TOK
     {
-        ParseTree *p = malloc(sizeof(ParseTree));
-        ParseTree *ident = malloc(sizeof(ParseTree));
-        ident->pt_tag = PT_IDENT;
-        ident->pt_union.identifier.name = $3;
-        p->pt_tag = PT_IDENT_L;
-        p->pt_union.ident_l.ident = ident;
-        p->pt_union.ident_l.next = NULL;
-        p->pt_union.ident_l.prev = $1.list_tail;
-        $$.list_tail->pt_union.ident_l.next = p;
-        $$.list_head = $1.list_head;
-        $$.list_tail = p;
+        $$ = NULL;
     }
 
 VarDecl:
     VAR_TOK VarDeclList
     {
-        ParseTree *p = malloc(sizeof(ParseTree));
-        p->pt_tag = PT_V_DECL;
-        p->pt_union.v_decl.vdl_head = $2.list_head;
-        p->pt_union.v_decl.vdl_tail = $2.list_tail;
-        $$ = p;
+        $$ = NULL;
     }
 
 VarDeclList:
     IdentList COLON_TOK Type SEMICOLON_TOK
     {
-        ParseTree *p = malloc(sizeof(ParseTree));
-        p->pt_tag = PT_V_DECL_L;
-        p->pt_union.v_decl_l.il_head = $1.list_head;
-        p->pt_union.v_decl_l.il_tail = $1.list_tail;
-        p->pt_union.v_decl_l.type = lookup_by_ident(ST_TYPE, $3);
-        p->pt_union.v_decl_l.next = NULL;
-        p->pt_union.v_decl_l.prev = NULL;
-        $$.list_head = p;
-        $$.list_tail = p;
+        $$ = NULL;
     }
     | VarDeclList IdentList COLON_TOK Type SEMICOLON_TOK
     {
-        ParseTree *p = malloc(sizeof(ParseTree));
-        p->pt_tag = PT_V_DECL_L;
-        p->pt_union.v_decl_l.il_head = $2.list_head;
-        p->pt_union.v_decl_l.il_tail = $2.list_tail;
-        p->pt_union.v_decl_l.type = lookup_by_ident(ST_TYPE, $4);
-        p->pt_union.v_decl_l.next = NULL;
-        p->pt_union.v_decl_l.prev = $1.list_tail;
-        $1.list_tail->pt_union.v_decl_l.next = p;
-        $$.list_head = $1.list_head;
-        $$.list_tail = p;
+        $$ = NULL;
     }
 
 StatementList:
     Statement
     {
-        ParseTree *p = malloc(sizeof(ParseTree));
-        p->pt_tag = PT_STATEMENT_L;
-        p->pt_union.statement_l.stmt = $1;
-        p->pt_union.statement_l.prev = NULL;
-        p->pt_union.statement_l.next = NULL;
-        $$.list_head = p;
-        $$.list_tail = p;
+        $$ = NULL;
     }
     | StatementList SEMICOLON_TOK Statement
     {
-        ParseTree *p = malloc(sizeof(ParseTree));
-        p->pt_tag = PT_STATEMENT_L;
-        p->pt_union.statement_l.stmt = $3;
-        p->pt_union.statement_l.prev = $1.list_tail;
-        $1.list_tail->pt_union.statement_l.next = p;
-        $$.list_head = $1.list_head;
-        $$.list_tail = p;
+        $$ = NULL;
     }
 
 Statement:
     Assignment
     {
-        ParseTree *p = malloc(sizeof(ParseTree));
-        p->pt_tag = PT_STATEMENT;
-        p->pt_union.statement.tag = STMT_ASSIGN;
-        p->pt_union.statement.stmt_union.assign_stmt = $1;
-        $$ = p;
+        $$ = NULL;
     }
     | IfStatement
     {
-        ParseTree *p = malloc(sizeof(ParseTree));
-        p->pt_tag = PT_STATEMENT;
-        p->pt_union.statement.tag = STMT_IF;
-        p->pt_union.statement.stmt_union.if_stmt = $1;
-        $$ = p;
+        $$ = NULL;
     }
     | WhileStatement
     {
-        ParseTree *p = malloc(sizeof(ParseTree));
-        p->pt_tag = PT_STATEMENT;
-        p->pt_union.statement.tag = STMT_WHILE;
-        p->pt_union.statement.stmt_union.while_stmt = $1;
-        $$ = p;
+        $$ = NULL;
     }
     | RepeatStatement
     {
-        ParseTree *p = malloc(sizeof(ParseTree));
-        p->pt_tag = PT_STATEMENT;
-        p->pt_union.statement.tag = STMT_REPEAT;
-        p->pt_union.statement.stmt_union.repeat_stmt = $1;
-        $$ = p;
+        $$ = NULL;
     }
     | ForStatement
     {
-        ParseTree *p = malloc(sizeof(ParseTree));
-        p->pt_tag = PT_STATEMENT;
-        p->pt_union.statement.tag = STMT_FOR;
-        p->pt_union.statement.stmt_union.for_stmt = $1;
-        $$ = p;
+        $$ = NULL;
     }
     | StopStatement
     {
-        ParseTree *p = malloc(sizeof(ParseTree));
-        p->pt_tag = PT_STATEMENT;
-        p->pt_union.statement.tag = STMT_STOP;
-        p->pt_union.statement.stmt_union.stop_stmt = $1;
-        $$ = p;
+        $$ = NULL;
     }
     | ReturnStatement
     {
-        ParseTree *p = malloc(sizeof(ParseTree));
-        p->pt_tag = PT_STATEMENT;
-        p->pt_union.statement.tag = STMT_RETURN;
-        p->pt_union.statement.stmt_union.return_stmt = $1;
-        $$ = p;
+        $$ = NULL;
     }
     | ReadStatement
     {
-        ParseTree *p = malloc(sizeof(ParseTree));
-        p->pt_tag = PT_STATEMENT;
-        p->pt_union.statement.tag = STMT_READ;
-        p->pt_union.statement.stmt_union.read_stmt = $1;
-        $$ = p;
+        $$ = NULL;
     }
     | WriteStatement
     {
-        ParseTree *p = malloc(sizeof(ParseTree));
-        p->pt_tag = PT_STATEMENT;
-        p->pt_union.statement.tag = STMT_WRITE;
-        p->pt_union.statement.stmt_union.write_stmt = $1;
-        $$ = p;
+        $$ = NULL;
     }
     | ProcedureCall
     {
-        ParseTree *p = malloc(sizeof(ParseTree));
-        p->pt_tag = PT_STATEMENT;
-        p->pt_union.statement.tag = STMT_PCALL;
-        p->pt_union.statement.stmt_union.pcall_stmt = $1;
-        $$ = p;
+        $$ = NULL;
     }
     | NullStatement
     {
-        ParseTree *p = malloc(sizeof(ParseTree));
-        p->pt_tag = PT_STATEMENT;
-        p->pt_union.statement.tag = STMT_NULL;
-        p->pt_union.statement.stmt_union.null_stmt = $1;
-        $$ = p;
+        $$ = NULL;
     }
 
 Assignment:
     LValue ASSIGN_TOK Expression
     {
-        ParseTree *p = malloc(sizeof(ParseTree));
-        p->pt_tag = PT_ASSIGN_STMT;
-        p->pt_union.assign_stmt.lvalue = $1;
-        p->pt_union.assign_stmt.expr = $3;
-        $$ = p;
+        $$ = NULL;
     }
 
 IfStatement:
     IF_TOK Expression THEN_TOK StatementList END_TOK
     {
-        ParseTree *p = malloc(sizeof(ParseTree));
-        p->pt_tag = PT_IF_STMT;
-        p->pt_union.if_stmt.if_cond = $2;
-        p->pt_union.if_stmt.if_sl_head = $4.list_head;
-        p->pt_union.if_stmt.if_sl_tail = $4.list_tail;
-        p->pt_union.if_stmt.eil_head = NULL;
-        p->pt_union.if_stmt.eil_tail = NULL;
-        p->pt_union.if_stmt.else_sl_head = NULL;
-        p->pt_union.if_stmt.else_sl_tail = NULL;
-        $$ = p;
+        $$ = NULL;
     }
     | IF_TOK Expression THEN_TOK StatementList ELSE_TOK StatementList END_TOK
     {
-        ParseTree *p = malloc(sizeof(ParseTree));
-        p->pt_tag = PT_IF_STMT;
-        p->pt_union.if_stmt.if_cond = $2;
-        p->pt_union.if_stmt.if_sl_head = $4.list_head;
-        p->pt_union.if_stmt.if_sl_tail = $4.list_tail;
-        p->pt_union.if_stmt.eil_head = NULL;
-        p->pt_union.if_stmt.eil_tail = NULL;
-        p->pt_union.if_stmt.else_sl_head = $6.list_head;
-        p->pt_union.if_stmt.else_sl_tail = $6.list_tail;
-        $$ = p;
+        $$ = NULL;
     }
     | IF_TOK Expression THEN_TOK StatementList ElseIfList END_TOK
     {
-        ParseTree *p = malloc(sizeof(ParseTree));
-        p->pt_tag = PT_IF_STMT;
-        p->pt_union.if_stmt.if_cond = $2;
-        p->pt_union.if_stmt.if_sl_head = $4.list_head;
-        p->pt_union.if_stmt.if_sl_tail = $4.list_tail;
-        p->pt_union.if_stmt.eil_head = $5.list_head;
-        p->pt_union.if_stmt.eil_tail = $5.list_tail;
-        p->pt_union.if_stmt.else_sl_head = NULL;
-        p->pt_union.if_stmt.else_sl_tail = NULL;
-        $$ = p;
+        $$ = NULL;
     }
     | IF_TOK Expression THEN_TOK StatementList ElseIfList ELSE_TOK StatementList END_TOK
     {
-        ParseTree *p = malloc(sizeof(ParseTree));
-        p->pt_tag = PT_IF_STMT;
-        p->pt_union.if_stmt.if_cond = $2;
-        p->pt_union.if_stmt.if_sl_head = $4.list_head;
-        p->pt_union.if_stmt.if_sl_tail = $4.list_tail;
-        p->pt_union.if_stmt.eil_head = $5.list_head;
-        p->pt_union.if_stmt.eil_tail = $5.list_tail;
-        p->pt_union.if_stmt.else_sl_head = $7.list_head;
-        p->pt_union.if_stmt.else_sl_tail = $7.list_tail;
-        $$ = p;
+        $$ = NULL;
     }
 
 ElseIfList:
     ELSEIF_TOK Expression THEN_TOK StatementList
     {
-        ParseTree *p = malloc(sizeof(ParseTree));
-        p->pt_tag = PT_ELSEIF_L;
-        p->pt_union.elseif_l.ei_cond = $2;
-        p->pt_union.elseif_l.ei_sl_head = $4.list_head;
-        p->pt_union.elseif_l.ei_sl_tail = $4.list_tail;
-        p->pt_union.elseif_l.prev = NULL;
-        p->pt_union.elseif_l.next = NULL;
-        $$.list_head = p;
-        $$.list_tail = p;
+        $$ = NULL;
     }
     | ElseIfList ELSEIF_TOK Expression THEN_TOK StatementList
     {
-        ParseTree *p = malloc(sizeof(ParseTree));
-        p->pt_tag = PT_ELSEIF_L;
-        p->pt_union.elseif_l.ei_cond = $3;
-        p->pt_union.elseif_l.ei_sl_head = $5.list_head;
-        p->pt_union.elseif_l.ei_sl_tail = $5.list_tail;
-        p->pt_union.elseif_l.prev = $1.list_tail;
-        p->pt_union.elseif_l.next = NULL;
-        $1.list_tail->pt_union.elseif_l.next = p;
-        $$.list_head = $1.list_head;
-        $$.list_tail = p;
+        $$ = NULL;
     }
 
 WhileStatement:
     WHILE_TOK Expression DO_TOK StatementList END_TOK
     {
-        ParseTree *p = malloc(sizeof(ParseTree));
-        p->pt_tag = PT_WHILE_STMT;
-        p->pt_union.while_stmt.while_cond = $2;
-        p->pt_union.while_stmt.while_sl_head = $4.list_head;
-        p->pt_union.while_stmt.while_sl_tail = $4.list_tail;
-        $$ = p;
+        $$ = NULL;
     }
 
 RepeatStatement:
     REPEAT_TOK StatementList UNTIL_TOK Expression
     {
-        ParseTree *p = malloc(sizeof(ParseTree));
-        p->pt_tag = PT_REPEAT_STMT;
-        p->pt_union.repeat_stmt.repeat_cond = $4;
-        p->pt_union.repeat_stmt.repeat_sl_head = $2.list_head;
-        p->pt_union.repeat_stmt.repeat_sl_tail = $2.list_tail;
-        $$ = p;
+        $$ = NULL;
     }
 
 ForStatement:
     FOR_TOK IDENTIFIER_TOK ASSIGN_TOK Expression TO_TOK Expression DO_TOK StatementList END_TOK
     {
-        ParseTree *p = malloc(sizeof(ParseTree));
-        ParseTree *ident = malloc(sizeof(ParseTree));
-        ident->pt_tag = PT_IDENT;
-        ident->pt_union.identifier.name = $2;
-        p->pt_tag = PT_FOR_STMT;
-        p->pt_union.for_stmt.tag = FOR_UP;
-        p->pt_union.for_stmt.for_ident = ident;
-        p->pt_union.for_stmt.start_expr = $4;
-        p->pt_union.for_stmt.end_expr = $6;
-        p->pt_union.for_stmt.for_sl_head = $8.list_head;
-        p->pt_union.for_stmt.for_sl_tail = $8.list_tail;
-        $$ = p;
+        $$ = NULL;
     }
     | FOR_TOK IDENTIFIER_TOK ASSIGN_TOK Expression DOWNTO_TOK Expression DO_TOK StatementList END_TOK
     {
-        ParseTree *p = malloc(sizeof(ParseTree));
-        ParseTree *ident = malloc(sizeof(ParseTree));
-        ident->pt_tag = PT_IDENT;
-        ident->pt_union.identifier.name = $2;
-        p->pt_tag = PT_FOR_STMT;
-        p->pt_union.for_stmt.tag = FOR_DOWN;
-        p->pt_union.for_stmt.for_ident = ident;
-        p->pt_union.for_stmt.start_expr = $4;
-        p->pt_union.for_stmt.end_expr = $6;
-        p->pt_union.for_stmt.for_sl_head = $8.list_head;
-        p->pt_union.for_stmt.for_sl_tail = $8.list_tail;
-        $$ = p;
+        $$ = NULL;
     }
 
 StopStatement:
     STOP_TOK
     {
-        ParseTree *p = malloc(sizeof(ParseTree));
-        p->pt_tag = PT_STOP_STMT;
-        $$ = p;
+        $$ = NULL;
     }
 
 ReturnStatement:
     RETURN_TOK
     {
-        ParseTree *p = malloc(sizeof(ParseTree));
-        p->pt_tag = PT_RETURN_STMT;
-        p->pt_union.return_stmt.expr = NULL;
-        $$ = p;
+        $$ = NULL;
     }
     | RETURN_TOK Expression
     {
-        ParseTree *p = malloc(sizeof(ParseTree));
-        p->pt_tag = PT_RETURN_STMT;
-        p->pt_union.return_stmt.expr = $2;
-        $$ = p;
+        $$ = NULL;
     }
 
 ReadStatement:
     READ_TOK LPAREN_TOK ReadList RPAREN_TOK
     {
-        ParseTree *p = malloc(sizeof(ParseTree));
-        p->pt_tag = PT_READ_STMT;
-        p->pt_union.read_stmt.rl_head = $3.list_head;
-        p->pt_union.read_stmt.rl_tail = $3.list_tail;
-        $$ = p;
+        $$ = NULL;
     }
 
 ReadList:
     LValue
     {
-        ParseTree *p = malloc(sizeof(ParseTree));
-        p->pt_tag = PT_READ_L;
-        p->pt_union.read_l.lvalue = $1;
-        p->pt_union.read_l.next = NULL;
-        p->pt_union.read_l.prev = NULL;
-        $$.list_head = p;
-        $$.list_tail = p;
+        $$ = NULL;
     }
     | ReadList COMMA_TOK LValue
     {
-        ParseTree *p = malloc(sizeof(ParseTree));
-        p->pt_tag = PT_READ_L;
-        p->pt_union.read_l.lvalue = $3;
-        p->pt_union.read_l.next = NULL;
-        p->pt_union.read_l.prev = $1.list_tail;
-        $1.list_tail->pt_union.read_l.next = p;
-        $$.list_head = $1.list_head;
-        $$.list_tail = p;
+        $$ = NULL;
     }
 
 WriteStatement:
     WRITE_TOK LPAREN_TOK WriteList RPAREN_TOK
     {
-        ParseTree *p = malloc(sizeof(ParseTree));
-        p->pt_tag = PT_WRITE_STMT;
-        p->pt_union.write_stmt.wl_head = $3.list_head;
-        p->pt_union.write_stmt.wl_tail = $3.list_tail;
-        $$ = p;
+        $$ = NULL;
     }
 
 WriteList:
     Expression
     {
-        ParseTree *p = malloc(sizeof(ParseTree));
-        p->pt_tag = PT_WRITE_L;
-        p->pt_union.write_l.expr = $1;
-        p->pt_union.write_l.next = NULL;
-        p->pt_union.write_l.prev = NULL;
-        $$.list_head = p;
-        $$.list_tail = p;
+        $$ = NULL;
     }
     | WriteList COMMA_TOK Expression
     {
-        ParseTree *p = malloc(sizeof(ParseTree));
-        p->pt_tag = PT_WRITE_L;
-        p->pt_union.write_l.expr = $3;
-        p->pt_union.write_l.next = NULL;
-        p->pt_union.write_l.prev = $1.list_tail;
-        $1.list_tail->pt_union.write_l.next = p;
-        $$.list_head = $1.list_head;
-        $$.list_tail = p;
+        $$ = NULL;
     }
 
 ProcedureCall:
     IDENTIFIER_TOK LPAREN_TOK ArgumentList RPAREN_TOK
     {
-        ParseTree *p = malloc(sizeof(ParseTree));
-        ParseTree *ident = malloc(sizeof(ParseTree));
-        ident->pt_tag = PT_IDENT;
-        ident->pt_union.identifier.name = $1;
-        p->pt_tag = PT_PCALL_STMT;
-        p->pt_union.pcall_stmt.ident = ident;
-        p->pt_union.pcall_stmt.al_head = $3.list_head;
-        p->pt_union.pcall_stmt.al_tail = $3.list_tail;
-        $$ = p;
+        $$ = NULL;
     }
 
 ArgumentList:
     %empty
     {
-        ParseTree *p = malloc(sizeof(ParseTree));
-        p->pt_tag = PT_ARG_L;
-        p->pt_union.arg_l.expr = NULL;
-        p->pt_union.arg_l.next = NULL;
-        p->pt_union.arg_l.prev = NULL;
-        $$.list_head = p;
-        $$.list_tail = p;
+        $$ = NULL;
     }
     | Expression
     {
-        ParseTree *p = malloc(sizeof(ParseTree));
-        p->pt_tag = PT_ARG_L;
-        p->pt_union.arg_l.expr = $1;
-        p->pt_union.arg_l.next = NULL;
-        p->pt_union.arg_l.prev = NULL;
-        $$.list_head = p;
-        $$.list_tail = p;
+        $$ = NULL;
     }
     | ArgumentList COMMA_TOK Expression
     {
-        ParseTree *p = malloc(sizeof(ParseTree));
-        p->pt_tag = PT_ARG_L;
-        p->pt_union.arg_l.expr = $3;
-        p->pt_union.arg_l.next = NULL;
-        p->pt_union.arg_l.prev = $1.list_tail;
-        $1.list_head->pt_union.arg_l.next = p;
-        $$.list_head = $1.list_head;
-        $$.list_tail = p;
+        $$ = NULL;
     }
 
 NullStatement:
     %empty
     {
-        ParseTree *p = malloc(sizeof(ParseTree));
-        p->pt_tag = PT_NULL_STMT;
-        $$ = p;
+        $$ = NULL;
     }
 
 Expression:
     Expression OR_TOK Expression
     {
-        ParseTree *p = malloc(sizeof(ParseTree));
-        p->pt_tag = PT_EXPR;
-        p->pt_union.expr.tag = EXPR_OR;
-        p->pt_union.expr.expr_union.bin_op.left = $1;
-        p->pt_union.expr.expr_union.bin_op.right = $3;
-        $$ = p;
+        $$ = NULL;
     }
     | Expression AND_TOK Expression
     {
-        ParseTree *p = malloc(sizeof(ParseTree));
-        p->pt_tag = PT_EXPR;
-        p->pt_union.expr.tag = EXPR_AND;
-        p->pt_union.expr.expr_union.bin_op.left = $1;
-        p->pt_union.expr.expr_union.bin_op.right = $3;
-        $$ = p;
+        $$ = NULL;
     }
     | Expression EQUALS_TOK Expression
     {
-        ParseTree *p = malloc(sizeof(ParseTree));
-        p->pt_tag = PT_EXPR;
-        p->pt_union.expr.tag = EXPR_EQ;
-        p->pt_union.expr.expr_union.bin_op.left = $1;
-        p->pt_union.expr.expr_union.bin_op.right = $3;
-        $$ = p;
+        $$ = NULL;
     }
     | Expression NEQ_TOK Expression
     {
-        ParseTree *p = malloc(sizeof(ParseTree));
-        p->pt_tag = PT_EXPR;
-        p->pt_union.expr.tag = EXPR_NEQ;
-        p->pt_union.expr.expr_union.bin_op.left = $1;
-        p->pt_union.expr.expr_union.bin_op.right = $3;
-        $$ = p;
+        $$ = NULL;
     }
     | Expression LE_TOK Expression
     {
-        ParseTree *p = malloc(sizeof(ParseTree));
-        p->pt_tag = PT_EXPR;
-        p->pt_union.expr.tag = EXPR_LE;
-        p->pt_union.expr.expr_union.bin_op.left = $1;
-        p->pt_union.expr.expr_union.bin_op.right = $3;
-        $$ = p;
+        $$ = NULL;
     }
     | Expression GE_TOK Expression
     {
-        ParseTree *p = malloc(sizeof(ParseTree));
-        p->pt_tag = PT_EXPR;
-        p->pt_union.expr.tag = EXPR_GE;
-        p->pt_union.expr.expr_union.bin_op.left = $1;
-        p->pt_union.expr.expr_union.bin_op.right = $3;
-        $$ = p;
+        $$ = NULL;
     }
     | Expression LT_TOK Expression
     {
-        ParseTree *p = malloc(sizeof(ParseTree));
-        p->pt_tag = PT_EXPR;
-        p->pt_union.expr.tag = EXPR_LT;
-        p->pt_union.expr.expr_union.bin_op.left = $1;
-        p->pt_union.expr.expr_union.bin_op.right = $3;
-        $$ = p;
+        $$ = NULL;
     }
     | Expression GT_TOK Expression
     {
-        ParseTree *p = malloc(sizeof(ParseTree));
-        p->pt_tag = PT_EXPR;
-        p->pt_union.expr.tag = EXPR_GT;
-        p->pt_union.expr.expr_union.bin_op.left = $1;
-        p->pt_union.expr.expr_union.bin_op.right = $3;
-        $$ = p;
+        $$ = NULL;
     }
     | Expression ADD_TOK Expression
     {
-        ParseTree *p = malloc(sizeof(ParseTree));
-        p->pt_tag = PT_EXPR;
-        p->pt_union.expr.tag = EXPR_ADD;
-        p->pt_union.expr.expr_union.bin_op.left = $1;
-        p->pt_union.expr.expr_union.bin_op.right = $3;
-        $$ = p;
+        $$ = NULL;
     }
     | Expression SUB_TOK Expression
     {
-        ParseTree *p = malloc(sizeof(ParseTree));
-        p->pt_tag = PT_EXPR;
-        p->pt_union.expr.tag = EXPR_SUB;
-        p->pt_union.expr.expr_union.bin_op.left = $1;
-        p->pt_union.expr.expr_union.bin_op.right = $3;
-        $$ = p;
+        $$ = NULL;
     }
     | Expression MUL_TOK Expression
     {
-        ParseTree *p = malloc(sizeof(ParseTree));
-        p->pt_tag = PT_EXPR;
-        p->pt_union.expr.tag = EXPR_MUL;
-        p->pt_union.expr.expr_union.bin_op.left = $1;
-        p->pt_union.expr.expr_union.bin_op.right = $3;
-        $$ = p;
+        $$ = NULL;
     }
     | Expression DIV_TOK Expression
     {
-        ParseTree *p = malloc(sizeof(ParseTree));
-        p->pt_tag = PT_EXPR;
-        p->pt_union.expr.tag = EXPR_DIV;
-        p->pt_union.expr.expr_union.bin_op.left = $1;
-        p->pt_union.expr.expr_union.bin_op.right = $3;
-        $$ = p;
+        $$ = NULL;
     }
     | Expression MOD_TOK Expression
     {
-        ParseTree *p = malloc(sizeof(ParseTree));
-        p->pt_tag = PT_EXPR;
-        p->pt_union.expr.tag = EXPR_MOD;
-        p->pt_union.expr.expr_union.bin_op.left = $1;
-        p->pt_union.expr.expr_union.bin_op.right = $3;
-        $$ = p;
+        $$ = NULL;
     }
     | NOT_TOK Expression
     {
-        ParseTree *p = malloc(sizeof(ParseTree));
-        p->pt_tag = PT_EXPR;
-        p->pt_union.expr.tag = EXPR_NOT;
-        p->pt_union.expr.expr_union.un_op.sub_expr = $2;
-        $$ = p;
+        $$ = NULL;
     }
     | SUB_TOK Expression %prec UMINUS_TOK
     {
-        ParseTree *p = malloc(sizeof(ParseTree));
-        p->pt_tag = PT_EXPR;
-        p->pt_union.expr.tag = EXPR_UMINUS;
-        p->pt_union.expr.expr_union.un_op.sub_expr = $2;
-        $$ = p;
+        $$ = NULL;
     }
     | LPAREN_TOK Expression RPAREN_TOK
     {
-        ParseTree *p = malloc(sizeof(ParseTree));
-        p->pt_tag = PT_EXPR;
-        p->pt_union.expr.tag = EXPR_PAREN;
-        p->pt_union.expr.expr_union.un_op.sub_expr = $2;
-        $$ = p;
+        $$ = NULL;
     }
     | IDENTIFIER_TOK LPAREN_TOK ArgumentList RPAREN_TOK
     {
-        ParseTree *p = malloc(sizeof(ParseTree));
-        ParseTree *ident = malloc(sizeof(ParseTree));
-        ident->pt_tag = PT_IDENT;
-        ident->pt_union.identifier.name = $1;
-        p->pt_tag = PT_EXPR;
-        p->pt_union.expr.tag = EXPR_FCALL;
-        p->pt_union.expr.expr_union.fcall.ident = ident;
-        p->pt_union.expr.expr_union.fcall.arg_l_head = $3.list_head;
-        p->pt_union.expr.expr_union.fcall.arg_l_tail = $3.list_tail;
-        $$ = p;
+        $$ = NULL;
     }
     | CHR_TOK LPAREN_TOK Expression RPAREN_TOK
     {
-        ParseTree *p = malloc(sizeof(ParseTree));
-        p->pt_tag = PT_EXPR;
-        p->pt_union.expr.tag = EXPR_CHR;
-        p->pt_union.expr.expr_union.un_op.sub_expr = $3;
-        $$ = p;
+        $$ = NULL;
     }
     | ORD_TOK LPAREN_TOK Expression RPAREN_TOK
     {
-        ParseTree *p = malloc(sizeof(ParseTree));
-        p->pt_tag = PT_EXPR;
-        p->pt_union.expr.tag = EXPR_ORD;
-        p->pt_union.expr.expr_union.un_op.sub_expr = $3;
-        $$ = p;
+        $$ = NULL;
     }
     | PRED_TOK LPAREN_TOK Expression RPAREN_TOK
     {
-        ParseTree *p = malloc(sizeof(ParseTree));
-        p->pt_tag = PT_EXPR;
-        p->pt_union.expr.tag = EXPR_PRED;
-        p->pt_union.expr.expr_union.un_op.sub_expr = $3;
-        $$ = p;
+        $$ = NULL;
     }
     | SUCC_TOK LPAREN_TOK Expression RPAREN_TOK
     {
-        ParseTree *p = malloc(sizeof(ParseTree));
-        p->pt_tag = PT_EXPR;
-        p->pt_union.expr.tag = EXPR_SUCC;
-        p->pt_union.expr.expr_union.un_op.sub_expr = $3;
-        $$ = p;
+        $$ = NULL;
     }
     | LValue
     {
-        ParseTree *p = malloc(sizeof(ParseTree));
-        p->pt_tag = PT_EXPR;
-        p->pt_union.expr.tag = EXPR_LVALUE;
-        p->pt_union.expr.expr_union.lvalue = $1;
-        $$ = p;
+        $$ = NULL;
     }
     | INT_LITERAL_TOK
     {
-        ParseTree *p = malloc(sizeof(ParseTree));
-        ParseTree *lit = malloc(sizeof(ParseTree));
-        lit->pt_tag = PT_INT;
-        lit->pt_union.int_literal.value = $1;
-        p->pt_tag = PT_EXPR;
-        p->pt_union.expr.expr_union.int_literal = lit;
-        $$ = p;
+        $$ = NULL;
     }
     | FLOAT_LITERAL_TOK
     {
-        ParseTree *p = malloc(sizeof(ParseTree));
-        ParseTree *lit = malloc(sizeof(ParseTree));
-        lit->pt_tag = PT_FLOAT;
-        lit->pt_union.float_literal.value = $1;
-        p->pt_tag = PT_EXPR;
-        p->pt_union.expr.expr_union.float_literal = lit;
-        $$ = p;
+        $$ = NULL;
     }
     | CHAR_LITERAL_TOK
     {
-        ParseTree *p = malloc(sizeof(ParseTree));
-        ParseTree *lit = malloc(sizeof(ParseTree));
-        lit->pt_tag = PT_CHAR;
-        lit->pt_union.char_literal.value = $1;
-        p->pt_tag = PT_EXPR;
-        p->pt_union.expr.expr_union.char_literal = lit;
-        $$ = p;
+        $$ = NULL;
     }
     | STRING_LITERAL_TOK
     {
-        ParseTree *p = malloc(sizeof(ParseTree));
-        ParseTree *lit = malloc(sizeof(ParseTree));
-        lit->pt_tag = PT_STR;
-        lit->pt_union.str_literal.value = $1;
-        p->pt_tag = PT_EXPR;
-        p->pt_union.expr.expr_union.str_literal = lit;
-        $$ = p;
+        $$ = NULL;
     }
     | TRUE_TOK
     {
-        ParseTree *p = malloc(sizeof(ParseTree));
-        ParseTree *lit = malloc(sizeof(ParseTree));
-        lit->pt_tag = PT_BOOL;
-        lit->pt_union.bool_literal.value = $1;
-        p->pt_tag = PT_EXPR;
-        p->pt_union.expr.expr_union.bool_literal = lit;
-        $$ = p;
+        $$ = NULL;
     }
     | FALSE_TOK
     {
-        ParseTree *p = malloc(sizeof(ParseTree));
-        ParseTree *lit = malloc(sizeof(ParseTree));
-        lit->pt_tag = PT_BOOL;
-        lit->pt_union.bool_literal.value = $1;
-        p->pt_tag = PT_EXPR;
-        p->pt_union.expr.expr_union.bool_literal = lit;
-        $$ = p;
+        $$ = NULL;
     }
 
 LValue:
     IDENTIFIER_TOK
     {
-        ParseTree *p = malloc(sizeof(ParseTree));
-        p->pt_tag = PT_LVALUE;
-        p->pt_union.lvalue.tag = LV_IDENT;
-        p->pt_union.lvalue.lv_union.ident = lookup_ident_by_name(ST_VAR, $1);
-        $$ = p;
+        $$ = NULL;
     }
     | LValue MEMBER_TOK IDENTIFIER_TOK
     {
-        ParseTree *p = malloc(sizeof(ParseTree));
-        ParseTree *ident = malloc(sizeof(ParseTree));
-        ident->pt_tag = PT_IDENT;
-        ident->pt_union.identifier.name = $3;
-        p->pt_tag = PT_LVALUE;
-        p->pt_union.lvalue.tag = LV_MEMBER;
-        p->pt_union.lvalue.lv_union.member.ident = ident;
-        p->pt_union.lvalue.lv_union.member.parent_lv = $1;
-        $$ = p;
+        $$ = NULL;
     }
     | LValue LBRACKET_TOK Expression RBRACKET_TOK
     {
-        ParseTree *p = malloc(sizeof(ParseTree));
-        p->pt_tag = PT_LVALUE;
-        p->pt_union.lvalue.tag = LV_ARRAY;
-        p->pt_union.lvalue.lv_union.array.index_expr = $3;
-        p->pt_union.lvalue.lv_union.array.parent_lv = $1;
-        $$ = p;
+        $$ = NULL;
     }
 
 %%

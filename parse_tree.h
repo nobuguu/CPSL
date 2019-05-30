@@ -106,8 +106,8 @@ typedef struct SubroutineDeclList {
         struct ProcedureDecl *p_decl;
         struct FunctionDecl *f_decl;
     } sdl_union;
-    SubroutineDeclList *next;
-    SubroutineDeclList *prev;
+    struct SubroutineDeclList *next;
+    struct SubroutineDeclList *prev;
 } SubroutineDeclList;
 
 typedef struct ProcedureDecl {
@@ -291,9 +291,9 @@ typedef struct Expression {
             struct Expression *right;
         } bin_op;
         struct {
-            struct sub_expr;
+            struct Expression *sub_expr;
         } un_op;
-        LValue *lvalue;
+        struct LValue *lvalue;
         int int_literal;
         float float_literal;
         char char_literal;
