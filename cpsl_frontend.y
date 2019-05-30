@@ -10,19 +10,20 @@
 
 extern int yylex(void);
 extern int yyerror(const char*);
+ParseTree *pt_root;
 %}
 
 /* Bison declarations */
 
 %code requires {
     #include "../parse_tree.h"
+    #include "../symbol_table.h"
 }
 
 %verbose
 
 %union {
     ParseTree *pt_node;
-    /*ParseTreeList pt_list;*/
     struct {ParseTree *list_head; ParseTree *list_tail;} pt_list;
     bool bool_literal;
     int int_literal;
@@ -133,7 +134,7 @@ Program:
         p->pt_union.program.s_decl = NULL;
         p->pt_union.program.block = $1;
         process_symbols(p);
-        $$ = p;
+        pt_root = p;
     }
     | ConstantDecl
     {
@@ -150,7 +151,7 @@ Program:
     {
         ParseTree *p = $<pt_node>2;
         p->pt_union.program.block = $3;
-        $$ = p;
+        pt_root = p;
     }
     | TypeDecl
     {
@@ -167,7 +168,7 @@ Program:
     {
         ParseTree *p = $<pt_node>2;
         p->pt_union.program.block = $3;
-        $$ = p;
+        pt_root = p;
     }
     | VarDecl
     {
@@ -184,7 +185,7 @@ Program:
     {
         ParseTree *p = $<pt_node>2;
         p->pt_union.program.block = $3;
-        $$ = p;
+        pt_root = p;
     }
     | SubroutineDecl
     {
@@ -201,7 +202,7 @@ Program:
     {
         ParseTree *p = $<pt_node>2;
         p->pt_union.program.block = $3;
-        $$ = p;
+        pt_root = p;
     }
     | ConstantDecl TypeDecl
     {
@@ -218,7 +219,7 @@ Program:
     {
         ParseTree *p = $<pt_node>3;
         p->pt_union.program.block = $4;
-        $$ = p;
+        pt_root = p;
     }
     | ConstantDecl VarDecl
     {
@@ -235,7 +236,7 @@ Program:
     {
         ParseTree *p = $<pt_node>3;
         p->pt_union.program.block = $4;
-        $$ = p;
+        pt_root = p;
     }
     | ConstantDecl SubroutineDecl
     {
@@ -252,7 +253,7 @@ Program:
     {
         ParseTree *p = $<pt_node>3;
         p->pt_union.program.block = $4;
-        $$ = p;
+        pt_root = p;
     }
     | TypeDecl VarDecl
     {
@@ -286,7 +287,7 @@ Program:
     {
         ParseTree *p = $<pt_node>3;
         p->pt_union.program.block = $4;
-        $$ = p;
+        pt_root = p;
     }
     | VarDecl SubroutineDecl
     {
@@ -303,7 +304,7 @@ Program:
     {
         ParseTree *p = $<pt_node>3;
         p->pt_union.program.block = $4;
-        $$ = p;
+        pt_root = p;
     }
     | ConstantDecl TypeDecl VarDecl
     {
@@ -320,7 +321,7 @@ Program:
     {
         ParseTree *p = $<pt_node>4;
         p->pt_union.program.block = $5;
-        $$ = p;
+        pt_root = p;
     }
     | ConstantDecl TypeDecl SubroutineDecl
     {
@@ -337,7 +338,7 @@ Program:
     {
         ParseTree *p = $<pt_node>4;
         p->pt_union.program.block = $5;
-        $$ = p;
+        pt_root = p;
     }
     | ConstantDecl VarDecl SubroutineDecl
     {
@@ -354,7 +355,7 @@ Program:
     {
         ParseTree *p = $<pt_node>4;
         p->pt_union.program.block = $5;
-        $$ = p;
+        pt_root = p;
     }
     | TypeDecl VarDecl SubroutineDecl
     {
@@ -371,7 +372,7 @@ Program:
     {
         ParseTree *p = $<pt_node>4;
         p->pt_union.program.block = $5;
-        $$ = p;
+        pt_root = p;
     }
     | ConstantDecl TypeDecl VarDecl SubroutineDecl
     {
@@ -388,7 +389,7 @@ Program:
     {
         ParseTree *p = $<pt_node>5;
         p->pt_union.program.block = $6;
-        $$ = p;
+        pt_root = p;
     }
 
 ConstantDecl:
@@ -622,6 +623,7 @@ FormalParameter:
         $$ = p;
     }
 
+/* TODO will have to add mid-rule actions here, too */
 Body:
     Block
     {
@@ -816,9 +818,7 @@ SimpleType:
     | IDENTIFIER_TOK
     {
         ParseTree *p = malloc(sizeof(ParseTree));
-        ParseTree *ident = malloc(sizeof(ParseTree));
-        ident->pt_tag = PT_IDENT;
-        ident->pt_union.identifier.name = $1;
+        ParseTree *ident = lookup_ident_by_name(ST_TYPE, $1);
         p->pt_tag = PT_SIMPLE_TYPE;
         p->pt_union.simple_type.tag = SIMPLE_IDENT;
         p->pt_union.simple_type.ident = ident;
@@ -927,7 +927,7 @@ VarDeclList:
         p->pt_tag = PT_V_DECL_L;
         p->pt_union.v_decl_l.il_head = $1.list_head;
         p->pt_union.v_decl_l.il_tail = $1.list_tail;
-        p->pt_union.v_decl_l.type = $3;
+        p->pt_union.v_decl_l.type = lookup_by_ident(ST_TYPE, $3);
         p->pt_union.v_decl_l.next = NULL;
         p->pt_union.v_decl_l.prev = NULL;
         $$.list_head = p;
@@ -939,7 +939,7 @@ VarDeclList:
         p->pt_tag = PT_V_DECL_L;
         p->pt_union.v_decl_l.il_head = $2.list_head;
         p->pt_union.v_decl_l.il_tail = $2.list_tail;
-        p->pt_union.v_decl_l.type = $4;
+        p->pt_union.v_decl_l.type = lookup_by_ident(ST_TYPE, $4);
         p->pt_union.v_decl_l.next = NULL;
         p->pt_union.v_decl_l.prev = $1.list_tail;
         $1.list_tail->pt_union.v_decl_l.next = p;
@@ -1609,12 +1609,9 @@ LValue:
     IDENTIFIER_TOK
     {
         ParseTree *p = malloc(sizeof(ParseTree));
-        ParseTree *ident = malloc(sizeof(ParseTree));
-        ident->pt_tag = PT_IDENT;
-        ident->pt_union.identifier.name = $1;
         p->pt_tag = PT_LVALUE;
         p->pt_union.lvalue.tag = LV_IDENT;
-        p->pt_union.lvalue.lv_union.ident = ident;
+        p->pt_union.lvalue.lv_union.ident = lookup_ident_by_name(ST_VAR, $1);
         $$ = p;
     }
     | LValue MEMBER_TOK IDENTIFIER_TOK

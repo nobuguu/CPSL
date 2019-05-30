@@ -7,6 +7,7 @@
 
 extern int yyparse(void);
 extern int yylex(void);
+extern ParseTree *pt_root;
 FILE* outfile;
 
 #ifdef YYDEBUG

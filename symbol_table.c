@@ -72,3 +72,19 @@ ParseTree *lookup_by_ident(SymbolTableTag tag, ParseTree *ident) {
     }
     return NULL;
 }
+
+ParseTree *lookup_ident_by_name(SymbolTableTag tag, char *name) {
+    Context *c = global_symbol_context;
+    while (c != NULL) {
+        SymbolTable *st = c->sym_t;
+        while (st != NULL) {
+            if (st->tag == tag
+                    && strcmp(st->ident->pt_union.identifier.name, name) == 0) {
+                return st->ident;
+            }
+            st = st->next;
+        }
+        c = c->next;
+    }
+    return NULL;
+}
