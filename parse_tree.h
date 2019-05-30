@@ -4,409 +4,324 @@
 #ifndef __PARSE_TREE_H
 #define __PARSE_TREE_H
 
-typedef struct ParseTree ParseTree;
+typedef struct Program {
+    struct ConstDecl *c_decl;
+    struct TypeDecl *t_decl;
+    struct VarDecl *v_decl;
+    struct SubroutineDecl *s_decl;
+    struct Block *block;
+} Program;
 
-typedef enum ParseTreeTag {
-    PT_PROGRAM,
-    PT_C_DECL,
-    PT_C_DECL_L,
-    PT_S_DECL,
-    PT_S_DECL_L,
-    PT_F_DECL,
-    PT_P_DECL,
-    PT_FORMAL_PARAM_L,
-    PT_FORMAL_PARAM,
-    PT_BODY,
-    PT_BLOCK,
-    PT_T_DECL,
-    PT_T_DECL_L,
-    PT_TYPE,
-    PT_SIMPLE_TYPE,
-    PT_RECORD_TYPE,
-    PT_ARRAY_TYPE,
-    PT_RECORD_TYPE_L,
-    PT_IDENT_L,
-    PT_V_DECL,
-    PT_V_DECL_L,
-    PT_STATEMENT_L,
-    PT_STATEMENT,
-    PT_ASSIGN_STMT,
-    PT_IF_STMT,
-    PT_ELSEIF_L,
-    PT_WHILE_STMT,
-    PT_REPEAT_STMT,
-    PT_FOR_STMT,
-    PT_STOP_STMT,
-    PT_RETURN_STMT,
-    PT_READ_STMT,
-    PT_READ_L,
-    PT_WRITE_STMT,
-    PT_WRITE_L,
-    PT_PCALL_STMT,
-    PT_ARG_L,
-    PT_NULL_STMT,
-    PT_EXPR,
-    PT_LVALUE,
-    PT_BOOL,
-    PT_INT,
-    PT_CHAR,
-    PT_FLOAT,
-    PT_STR,
-    PT_IDENT
-} ParseTreeTag;
+typedef struct ConstDecl {
+    struct ConstDeclList *cdl_head;
+    struct ConstDeclList *cdl_tail;
+} ConstDecl;
 
-typedef enum SubroutineDeclTag {
-    SD_FUNCTION,
-    SD_PROCEDURE
-} SubroutineDeclTag;
+typedef struct ConstDeclList {
+    struct Identifier *ident;
+    struct Expression *expr;
+    struct ConstDeclList *next;
+    struct ConstDeclList *prev;
+} ConstDeclList;
 
-typedef enum FormalParameterTag {
-    FP_VAR,
-    FP_REF
-} FormalParameterTag;
+typedef struct TypeDecl {
+    struct TypeDeclList *head;
+    struct TypeDeclList *tail;
+} TypeDecl;
+
+typedef struct TypeDeclList {
+    struct Identifier *ident;
+    struct Type *type;
+    struct TypeDeclList *next;
+    struct TypeDeclList *prev;
+} TypeDeclList;
 
 typedef enum TypeTag {
-    T_SIMPLE,
-    T_RECORD,
-    T_ARRAY
+    TYPE_SIMPLE, TYPE_RECORD, TYPE_ARRAY
 } TypeTag;
 
-typedef enum SimpleTypeTag {
-    SIMPLE_INT,
-    SIMPLE_CHAR,
-    SIMPLE_FLOAT,
-    SIMPLE_BOOLEAN,
-    SIMPLE_IDENT
-} SimpleTypeTag;
+typedef struct Type {
+    TypeTag tag;
+    union {
+        struct SimpleType *simple;
+        struct RecordType *record;
+        struct ArrayType *array;
+    } type_union;
+} Type;
+
+typedef struct SimpleType {
+    struct Identifier *ident;
+} SimpleType;
+
+typedef struct RecordType {
+    struct RecordTypeList *rtl_head;
+    struct RecordTypeList *rtl_tail;
+} RecordType;
+
+typedef struct RecordTypeList {
+    struct IdentList *il_head;
+    struct IdentList *il_tail;
+    struct Type *type;
+    struct RecordTypeList *next;
+    struct RecordtypeList *prev;
+} RecordTypeList;
+
+typedef struct IdentList {
+    struct Identifier *ident;
+    struct IdentList *prev;
+    struct IdentList *next;
+} IdentList;
+
+typedef struct ArrayType {
+    struct Expression *begin_expr;
+    struct Expression *end_expr;
+    struct Type *type;
+} ArrayType;
+
+typedef struct VarDecl {
+    struct VarDeclList *vdl_head;
+    struct VarDeclList *vdl_tail;
+} VarDecl;
+
+typedef struct VarDeclList {
+    struct IdentList *il_head;
+    struct IdentList *il_tail;
+    struct Type *type;
+    struct VarDeclList *prev;
+    struct VarDeclList *next;
+} VarDeclList;
+
+typedef enum SubroutineDeclListTag {
+    SDL_PROC, SDL_FUNC
+} SubroutineDeclListTag;
+
+typedef struct SubroutineDecl {
+    struct SubroutineDeclList *sdl_head;
+    struct SubroutineDeclList *sdl_tail;
+} SubroutineDecl;
+
+typedef struct SubroutineDeclList {
+    SubroutineDeclListTag tag;
+    union {
+        struct ProcedureDecl *p_decl;
+        struct FunctionDecl *f_decl;
+    } sdl_union;
+    SubroutineDeclList *next;
+    SubroutineDeclList *prev;
+} SubroutineDeclList;
+
+typedef struct ProcedureDecl {
+    struct Identifier *ident;
+    struct FormalParameterList *fpl_head;
+    struct FormalParameterList *fpl_tail;
+    struct Body *body;
+} ProcedureDecl;
+
+typedef struct FunctionDecl {
+    struct Identifier *ident;
+    struct FormalParameterList *fpl_head;
+    struct FormalParameterList *fpl_tail;
+    struct Type *return_type;
+    struct Body *body;
+} FunctionDecl;
+
+typedef enum FormalParameterTag {
+    FP_VAR, FP_REF
+} FormalParameterTag;
+
+typedef struct FormalParameterList {
+    struct FormalParameter *param;
+    struct FormalParameterList *next;
+    struct FormalParameterList *prev;
+} FormalParameterList;
+
+typedef struct FormalParameter {
+    FormalParameterTag tag;
+    struct Type *type;
+    struct IdentList *il_head;
+    struct IdentList *il_tail;
+} FormalParameter;
+
+typedef struct Body {
+    struct ConstDecl *c_decl;
+    struct TypeDecl *t_decl;
+    struct VarDecl *v_decl;
+    struct Block *block;
+} Body;
+
+typedef struct Block {
+    struct StatementList *sl_head;
+    struct StatementList *sl_tail;
+} Block;
+
+typedef struct StatementList {
+    struct Statement *stmt;
+    struct StatementList *next;
+    struct StatementList *prev;
+} StatementList;
 
 typedef enum StatementTag {
-    STMT_ASSIGN,
-    STMT_IF,
-    STMT_WHILE,
-    STMT_REPEAT,
-    STMT_FOR,
-    STMT_STOP,
-    STMT_RETURN,
-    STMT_READ,
-    STMT_WRITE,
-    STMT_PCALL,
-    STMT_NULL
+    STMT_ASSIGN, STMT_IF, STMT_WHILE, STMT_REPEAT, STMT_FOR, STMT_STOP, STMT_RETURN,
+    STMT_READ, STMT_WRITE, STMT_PCALL, STMT_NULL
 } StatementTag;
 
+typedef struct Statement {
+    StatementTag tag;
+    union {
+        struct AssignStatement *assign_stmt;
+        struct IfStatement *if_stmt;
+        struct WhileStatement *while_stmt;
+        struct RepeatStatement *repeat_stmt;
+        struct ForStatement *for_stmt;
+        struct StopStatement *stop_stmt;
+        struct ReturnStatement *return_stmt;
+        struct ReadStatement *read_stmt;
+        struct WriteStatement *write_stmt;
+        struct PCallStatement *pcall_stmt;
+        struct NullStatement *null_stmt;
+    } stmt_union;
+} Statement;
+
+typedef struct AssignStatement {
+    struct LValue *lvalue;
+    struct Expression *expr;
+} AssignStatement;
+
+typedef struct IfStatement {
+    struct Expression *if_cond;
+    struct StatementList *if_sl_head;
+    struct StatementList *if_sl_tail;
+    struct ElseIfList *eil_head;
+    struct ElseIfList *eil_tail;
+    struct StatementList *else_sl_head;
+    struct StatementList *else_sl_tail;
+} IfStatement;
+
+typedef struct ElseIfList {
+    struct Expression *ei_cond;
+    struct StatementList *ei_sl_head;
+    struct StatementList *ei_sl_tail;
+    struct ElseIfList *next;
+    struct ElseIfList *prev;
+} ElseIfList;
+
+typedef struct WhileStatement {
+    struct Expression *while_cond;
+    struct StatementList *while_sl_head;
+    struct StatementList *while_sl_tail;
+} WhileStatement;
+
+typedef struct RepeatStatement {
+    struct Expression *repeat_cond;
+    struct StatementList *repeat_sl_head;
+    struct StatementList *repeat_sl_tail;
+} RepeatStatement;
+
 typedef enum ForStatementTag {
-    FOR_UP,
-    FOR_DOWN
+    FOR_UP, FOR_DOWN
 } ForStatementTag;
 
+typedef struct ForStatement {
+    ForStatementTag tag;
+    struct Identifier *loop_var;
+    struct Expression *begin_expr;
+    struct Expression *end_expr;
+    struct StatementList *for_sl_head;
+    struct StatementList *for_sl_tail;
+} ForStatement;
+
+typedef struct StopStatement {
+    /* empty */
+} StopStatement;
+
+typedef struct ReturnStatement {
+    struct Expression *return_val;
+} ReturnStatement;
+
+typedef struct ReadStatement {
+    struct ReadList *rl_head;
+    struct ReadList *rl_tail;
+} ReadStatement;
+
+typedef struct ReadList {
+    struct LValue *lvalue;
+    struct ReadList *next;
+    struct ReadList *prev;
+} ReadList;
+
+typedef struct WriteStatement {
+    struct WriteList *wl_head;
+    struct WriteList *wl_tail;
+} WriteStatement;
+
+typedef struct WriteList {
+    struct Expression *expr;
+    struct WriteList *next;
+    struct WriteList *prev;
+} WriteList;
+
+typedef struct PCallStatement {
+    struct Identifier *ident;
+    struct ArgumentList *al_head;
+    struct ArgumentList *al_tail;
+} PCallStatement;
+
+typedef struct ArgumentList {
+    struct Expression *expr;
+    struct ArgumentList *next;
+    struct ArgumentList *prev;
+} ArgumentList;
+
+typedef struct NullStatement {
+    /* empty */
+} NullStatement;
+
 typedef enum ExpressionTag {
-    EXPR_OR,
-    EXPR_AND,
-    EXPR_EQ,
-    EXPR_NEQ,
-    EXPR_LE,
-    EXPR_GE,
-    EXPR_LT,
-    EXPR_GT,
-    EXPR_ADD,
-    EXPR_SUB,
-    EXPR_MUL,
-    EXPR_DIV,
-    EXPR_MOD,
-    EXPR_NOT,
-    EXPR_UMINUS,
-    EXPR_PAREN,
-    EXPR_FCALL,
-    EXPR_CHR,
-    EXPR_ORD,
-    EXPR_PRED,
-    EXPR_SUCC,
-    EXPR_LVALUE,
-    EXPR_BOOL,
-    EXPR_INT,
-    EXPR_CHAR,
-    EXPR_FLOAT,
-    EXPR_STR
+    EXPR_OR, EXPR_AND, EXPR_EQ, EXPR_NEQ, EXPR_LE, EXPR_GE, EXPR_LT, EXPR_GT,
+    EXPR_ADD, EXPR_SUB, EXPR_MUL, EXPR_DIV, EXPR_MOD, EXPR_NOT, EXPR_UMINUS,
+    EXPR_PAREN, EXPR_FCALL, EXPR_CHR, EXPR_ORD, EXPR_PRED, EXPR_SUCC,
+    EXPR_LVALUE, EXPR_INT, EXPR_FLOAT, EXPR_CHAR, EXPR_STR
 } ExpressionTag;
 
-typedef enum LValueTag {
-    LV_IDENT,
-    LV_MEMBER,
-    LV_ARRAY
-} LValueTag;
-
-struct ParseTree {
-    ParseTreeTag pt_tag;
+typedef struct Expression {
+    ExpressionTag tag;
     union {
         struct {
-            ParseTree *c_decl;
-            ParseTree *t_decl;
-            ParseTree *v_decl;
-            ParseTree *s_decl;
-            ParseTree *block;
-        } program;
+            struct Expression *left;
+            struct Expression *right;
+        } bin_op;
         struct {
-            ParseTree *cdl_head;
-            ParseTree *cdl_tail;
-        } c_decl;
+            struct sub_expr;
+        } un_op;
+        LValue *lvalue;
+        int int_literal;
+        float float_literal;
+        char char_literal;
+        char *str_literal;
+    } expr_union;
+} Expression;
+
+typedef enum LValueTag {
+    LV_IDENT, LV_MEMBER, LV_ARRAY
+} LValueTag;
+
+typedef struct LValue {
+    LValueTag tag;
+    union {
+        struct Identifier *ident;
         struct {
-            ParseTree *ident;
-            ParseTree *expr;
-            ParseTree *prev;
-            ParseTree *next;
-        } c_decl_l;
+            struct Identifier *ident;
+            struct LValue *parent_lv;
+        } lv_member;
         struct {
-            ParseTree *sdl_head;
-            ParseTree *sdl_tail;
-        } s_decl;
-        struct {
-            SubroutineDeclTag sd_tag;
-            union {
-                ParseTree *p_decl;
-                ParseTree *f_decl;
-            } sdl_union;
-            ParseTree *prev;
-            ParseTree *next;
-        } s_decl_l;
-        struct {
-            ParseTree *ident;
-            ParseTree *fpl_head;
-            ParseTree *fpl_tail;
-            ParseTree *return_t;
-            ParseTree *body;
-        } f_decl;
-        struct {
-            ParseTree *ident;
-            ParseTree *fpl_head;
-            ParseTree *fpl_tail;
-            ParseTree *body;
-        } p_decl;
-        struct {
-            ParseTree *param;
-            ParseTree *next;
-            ParseTree *prev;
-        } formal_param_l;
-        struct {
-            FormalParameterTag fp_tag;
-            ParseTree *il_head;
-            ParseTree *il_tail;
-            ParseTree *type;
-        } formal_param;
-        struct {
-            ParseTree *c_decl;
-            ParseTree *t_decl;
-            ParseTree *v_decl;
-            ParseTree *block;
-        } body;
-        struct {
-            ParseTree *sl_head;
-            ParseTree *sl_tail;
-        } block;
-        struct {
-            ParseTree *tdl_head;
-            ParseTree *tdl_tail;
-        } t_decl;
-        struct {
-            ParseTree *ident;
-            ParseTree *type;
-            ParseTree *next;
-            ParseTree *prev;
-        } t_decl_l;
-        struct {
-            TypeTag tag;
-            union {
-                ParseTree *simple;
-                ParseTree *record;
-                ParseTree *array;
-            } type_union;
-        } type;
-        struct {
-            SimpleTypeTag tag;
-            ParseTree *ident;
-        } simple_type;
-        struct {
-            ParseTree *rtl_head;
-            ParseTree *rtl_tail;
-        } record_type;
-        struct {
-            ParseTree *begin_expr;
-            ParseTree *end_expr;
-            ParseTree *type;
-        } array_type;
-        struct {
-            ParseTree *il_head;
-            ParseTree *il_tail;
-            ParseTree *type;
-            ParseTree *next;
-            ParseTree *prev;
-        } record_type_l;
-        struct {
-            ParseTree *ident;
-            ParseTree *next;
-            ParseTree *prev;
-        } ident_l;
-        struct {
-            ParseTree *vdl_head;
-            ParseTree *vdl_tail;
-        } v_decl;
-        struct {
-            ParseTree *il_head;
-            ParseTree *il_tail;
-            ParseTree *type;
-            ParseTree *prev;
-            ParseTree *next;
-        } v_decl_l;
-        struct {
-            ParseTree *stmt;
-            ParseTree *prev;
-            ParseTree *next;
-        } statement_l;
-        struct {
-            StatementTag tag;
-            union {
-                ParseTree *assign_stmt;
-                ParseTree *if_stmt;
-                ParseTree *while_stmt;
-                ParseTree *repeat_stmt;
-                ParseTree *for_stmt;
-                ParseTree *stop_stmt;
-                ParseTree *return_stmt;
-                ParseTree *read_stmt;
-                ParseTree *write_stmt;
-                ParseTree *pcall_stmt;
-                ParseTree *null_stmt;
-            } stmt_union;
-        } statement;
-        struct {
-            ParseTree *lvalue;
-            ParseTree *expr;
-        } assign_stmt;
-        struct {
-            ParseTree *if_cond;
-            ParseTree *if_sl_head;
-            ParseTree *if_sl_tail;
-            ParseTree *eil_head;
-            ParseTree *eil_tail;
-            ParseTree *else_sl_head;
-            ParseTree *else_sl_tail;
-        } if_stmt;
-        struct {
-            ParseTree *ei_cond;
-            ParseTree *ei_sl_head;
-            ParseTree *ei_sl_tail;
-            ParseTree *prev;
-            ParseTree *next;
-        } elseif_l;
-        struct {
-            ParseTree *while_cond;
-            ParseTree *while_sl_head;
-            ParseTree *while_sl_tail;
-        } while_stmt;
-        struct {
-            ParseTree *repeat_cond;
-            ParseTree *repeat_sl_head;
-            ParseTree *repeat_sl_tail;
-        } repeat_stmt;
-        struct {
-            ForStatementTag tag;
-            ParseTree *for_ident;
-            ParseTree *start_expr;
-            ParseTree *end_expr;
-            ParseTree *for_sl_head;
-            ParseTree *for_sl_tail;
-        } for_stmt;
-        struct {
-            /* empty */
-        } stop_stmt;
-        struct {
-            ParseTree *expr;
-        } return_stmt;
-        struct {
-            ParseTree *rl_head;
-            ParseTree *rl_tail;
-        } read_stmt;
-        struct {
-            ParseTree *lvalue;
-            ParseTree *next;
-            ParseTree *prev;
-        } read_l;
-        struct {
-            ParseTree *wl_head;
-            ParseTree *wl_tail;
-        } write_stmt;
-        struct {
-            ParseTree *expr;
-            ParseTree *next;
-            ParseTree *prev;
-        } write_l;
-        struct {
-            ParseTree *ident;
-            ParseTree *al_head;
-            ParseTree *al_tail;
-        } pcall_stmt;
-        struct {
-            ParseTree *expr;
-            ParseTree *next;
-            ParseTree *prev;
-        } arg_l;
-        struct {
-            /* empty */
-        } null_stmt;
-        struct {
-            ExpressionTag tag;
-            union {
-                struct {
-                    ParseTree *left;
-                    ParseTree *right;
-                } bin_op;
-                struct {
-                    ParseTree *sub_expr;
-                } un_op;
-                struct {
-                    ParseTree *ident;
-                    ParseTree *arg_l_head;
-                    ParseTree *arg_l_tail;
-                } fcall;
-                ParseTree *lvalue;
-                ParseTree *int_literal;
-                ParseTree *float_literal;
-                ParseTree *char_literal;
-                ParseTree *str_literal;
-                ParseTree *bool_literal;
-            } expr_union;
-        } expr;
-        struct {
-            LValueTag tag;
-            union {
-                ParseTree *ident;
-                struct {
-                    ParseTree *ident;
-                    ParseTree *parent_lv;
-                } member;
-                struct {
-                    ParseTree *index_expr;
-                    ParseTree *parent_lv;
-                } array;
-            } lv_union;
-        } lvalue;
-        struct {
-            bool value;
-        } bool_literal;
-        struct {
-            int value;
-        } int_literal;
-        struct {
-            float value;
-        } float_literal;
-        struct {
-            char value;
-        } char_literal;
-        struct {
-            char *value;
-        } str_literal;
-        struct {
-            char *name;
-        } identifier;
-    } pt_union;
-};
+            struct Expression *index_expr;
+            struct LValue *parent_lv;
+        } lv_array;
+    } lv_union;
+} LValue;
+
+typedef struct Identifier {
+    char *name;
+} Identifier;
 
 #endif
