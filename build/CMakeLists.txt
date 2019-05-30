@@ -19,6 +19,8 @@ set(cpsl_srcs
     ../parse_tree.c
     ../symbol_table.h
     ../symbol_table.c
+    ../preprocess.h
+    ../preprocess.c
     ../main.c
     ${BISON_Parser_OUTPUTS}
     ${FLEX_Scanner_OUTPUTS}

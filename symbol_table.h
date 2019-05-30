@@ -33,5 +33,6 @@ void add_to_table(SymbolTableTag, ParseTree*, ParseTree*);
 void push_table(void);
 void pop_table(void);
 ParseTree *lookup_by_ident(SymbolTableTag, ParseTree*);
+ParseTree *lookup_ident_by_name(SymbolTableTag, char*);
 
 #endif

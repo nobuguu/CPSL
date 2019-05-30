@@ -6,6 +6,7 @@
 #include <string.h>
 #include "../parse_tree.h"
 #include "../symbol_table.h"
+#include "../preprocess.h"
 
 extern int yylex(void);
 extern int yyerror(const char*);
@@ -131,9 +132,10 @@ Program:
         p->pt_union.program.v_decl = NULL;
         p->pt_union.program.s_decl = NULL;
         p->pt_union.program.block = $1;
+        process_symbols(p);
         $$ = p;
     }
-    | ConstantDecl Block MEMBER_TOK
+    | ConstantDecl
     {
         ParseTree *p = malloc(sizeof(ParseTree));
         p->pt_tag = PT_PROGRAM;
@@ -141,10 +143,16 @@ Program:
         p->pt_union.program.t_decl = NULL;
         p->pt_union.program.v_decl = NULL;
         p->pt_union.program.s_decl = NULL;
-        p->pt_union.program.block = $2;
+        process_symbols(p);
+        $<pt_node>$ = p;
+    }
+    Block MEMBER_TOK
+    {
+        ParseTree *p = $<pt_node>2;
+        p->pt_union.program.block = $3;
         $$ = p;
     }
-    | TypeDecl Block MEMBER_TOK
+    | TypeDecl
     {
         ParseTree *p = malloc(sizeof(ParseTree));
         p->pt_tag = PT_PROGRAM;
@@ -152,10 +160,16 @@ Program:
         p->pt_union.program.t_decl = $1;
         p->pt_union.program.v_decl = NULL;
         p->pt_union.program.s_decl = NULL;
-        p->pt_union.program.block = $2;
+        process_symbols(p);
+        $<pt_node>$ = p;
+    }
+    Block MEMBER_TOK
+    {
+        ParseTree *p = $<pt_node>2;
+        p->pt_union.program.block = $3;
         $$ = p;
     }
-    | VarDecl Block MEMBER_TOK
+    | VarDecl
     {
         ParseTree *p = malloc(sizeof(ParseTree));
         p->pt_tag = PT_PROGRAM;
@@ -163,10 +177,16 @@ Program:
         p->pt_union.program.t_decl = NULL;
         p->pt_union.program.v_decl = $1;
         p->pt_union.program.s_decl = NULL;
-        p->pt_union.program.block = $2;
+        process_symbols(p);
+        $<pt_node>$ = p;
+    }
+    Block MEMBER_TOK
+    {
+        ParseTree *p = $<pt_node>2;
+        p->pt_union.program.block = $3;
         $$ = p;
     }
-    | SubroutineDecl Block MEMBER_TOK
+    | SubroutineDecl
     {
         ParseTree *p = malloc(sizeof(ParseTree));
         p->pt_tag = PT_PROGRAM;
@@ -174,10 +194,16 @@ Program:
         p->pt_union.program.t_decl = NULL;
         p->pt_union.program.v_decl = NULL;
         p->pt_union.program.s_decl = $1;
-        p->pt_union.program.block = $2;
+        process_symbols(p);
+        $<pt_node>$ = p;
+    }
+    Block MEMBER_TOK
+    {
+        ParseTree *p = $<pt_node>2;
+        p->pt_union.program.block = $3;
         $$ = p;
     }
-    | ConstantDecl TypeDecl Block MEMBER_TOK
+    | ConstantDecl TypeDecl
     {
         ParseTree *p = malloc(sizeof(ParseTree));
         p->pt_tag = PT_PROGRAM;
@@ -185,10 +211,16 @@ Program:
         p->pt_union.program.t_decl = $2;
         p->pt_union.program.v_decl = NULL;
         p->pt_union.program.s_decl = NULL;
-        p->pt_union.program.block = $3;
+        process_symbols(p);
+        $<pt_node>$ = p;
+    }
+    Block MEMBER_TOK
+    {
+        ParseTree *p = $<pt_node>3;
+        p->pt_union.program.block = $4;
         $$ = p;
     }
-    | ConstantDecl VarDecl Block MEMBER_TOK
+    | ConstantDecl VarDecl
     {
         ParseTree *p = malloc(sizeof(ParseTree));
         p->pt_tag = PT_PROGRAM;
@@ -196,10 +228,16 @@ Program:
         p->pt_union.program.t_decl = NULL;
         p->pt_union.program.v_decl = $2;
         p->pt_union.program.s_decl = NULL;
-        p->pt_union.program.block = $3;
+        process_symbols(p);
+        $<pt_node>$ = p;
+    }
+    Block MEMBER_TOK
+    {
+        ParseTree *p = $<pt_node>3;
+        p->pt_union.program.block = $4;
         $$ = p;
     }
-    | ConstantDecl SubroutineDecl Block MEMBER_TOK
+    | ConstantDecl SubroutineDecl
     {
         ParseTree *p = malloc(sizeof(ParseTree));
         p->pt_tag = PT_PROGRAM;
@@ -207,10 +245,16 @@ Program:
         p->pt_union.program.t_decl = NULL;
         p->pt_union.program.v_decl = NULL;
         p->pt_union.program.s_decl = $2;
-        p->pt_union.program.block = $3;
+        process_symbols(p);
+        $<pt_node>$ = p;
+    }
+    Block MEMBER_TOK
+    {
+        ParseTree *p = $<pt_node>3;
+        p->pt_union.program.block = $4;
         $$ = p;
     }
-    | TypeDecl VarDecl Block MEMBER_TOK
+    | TypeDecl VarDecl
     {
         ParseTree *p = malloc(sizeof(ParseTree));
         p->pt_tag = PT_PROGRAM;
@@ -218,10 +262,16 @@ Program:
         p->pt_union.program.t_decl = $1;
         p->pt_union.program.v_decl = $2;
         p->pt_union.program.s_decl = NULL;
-        p->pt_union.program.block = $3;
+        process_symbols(p);
+        $<pt_node>$ = p;
+    }
+    Block MEMBER_TOK
+    {
+        ParseTree *p = $<pt_node>3;
+        p->pt_union.program.block = $4;
         $$ = p;
     }
-    | TypeDecl SubroutineDecl Block MEMBER_TOK
+    | TypeDecl SubroutineDecl
     {
         ParseTree *p = malloc(sizeof(ParseTree));
         p->pt_tag = PT_PROGRAM;
@@ -229,10 +279,16 @@ Program:
         p->pt_union.program.t_decl = $1;
         p->pt_union.program.v_decl = NULL;
         p->pt_union.program.s_decl = $2;
-        p->pt_union.program.block = $3;
+        process_symbols(p);
+        $<pt_node>$ = p;
+    }
+    Block MEMBER_TOK
+    {
+        ParseTree *p = $<pt_node>3;
+        p->pt_union.program.block = $4;
         $$ = p;
     }
-    | VarDecl SubroutineDecl Block MEMBER_TOK
+    | VarDecl SubroutineDecl
     {
         ParseTree *p = malloc(sizeof(ParseTree));
         p->pt_tag = PT_PROGRAM;
@@ -240,10 +296,16 @@ Program:
         p->pt_union.program.t_decl = NULL;
         p->pt_union.program.v_decl = $1;
         p->pt_union.program.s_decl = $2;
-        p->pt_union.program.block = $3;
+        process_symbols(p);
+        $<pt_node>$ = p;
+    }
+    Block MEMBER_TOK
+    {
+        ParseTree *p = $<pt_node>3;
+        p->pt_union.program.block = $4;
         $$ = p;
     }
-    | ConstantDecl TypeDecl VarDecl Block MEMBER_TOK
+    | ConstantDecl TypeDecl VarDecl
     {
         ParseTree *p = malloc(sizeof(ParseTree));
         p->pt_tag = PT_PROGRAM;
@@ -251,10 +313,16 @@ Program:
         p->pt_union.program.t_decl = $2;
         p->pt_union.program.v_decl = $3;
         p->pt_union.program.s_decl = NULL;
-        p->pt_union.program.block = $4;
+        process_symbols(p);
+        $<pt_node>$ = p;
+    }
+    Block MEMBER_TOK
+    {
+        ParseTree *p = $<pt_node>4;
+        p->pt_union.program.block = $5;
         $$ = p;
     }
-    | ConstantDecl TypeDecl SubroutineDecl Block MEMBER_TOK
+    | ConstantDecl TypeDecl SubroutineDecl
     {
         ParseTree *p = malloc(sizeof(ParseTree));
         p->pt_tag = PT_PROGRAM;
@@ -262,10 +330,16 @@ Program:
         p->pt_union.program.t_decl = $2;
         p->pt_union.program.v_decl = NULL;
         p->pt_union.program.s_decl = $3;
-        p->pt_union.program.block = $4;
+        process_symbols(p);
+        $<pt_node>$ = p;
+    }
+    Block MEMBER_TOK
+    {
+        ParseTree *p = $<pt_node>4;
+        p->pt_union.program.block = $5;
         $$ = p;
     }
-    | ConstantDecl VarDecl SubroutineDecl Block MEMBER_TOK
+    | ConstantDecl VarDecl SubroutineDecl
     {
         ParseTree *p = malloc(sizeof(ParseTree));
         p->pt_tag = PT_PROGRAM;
@@ -273,10 +347,16 @@ Program:
         p->pt_union.program.t_decl = NULL;
         p->pt_union.program.v_decl = $2;
         p->pt_union.program.s_decl = $3;
-        p->pt_union.program.block = $4;
+        process_symbols(p);
+        $<pt_node>$ = p;
+    }
+    Block MEMBER_TOK
+    {
+        ParseTree *p = $<pt_node>4;
+        p->pt_union.program.block = $5;
         $$ = p;
     }
-    | TypeDecl VarDecl SubroutineDecl Block MEMBER_TOK
+    | TypeDecl VarDecl SubroutineDecl
     {
         ParseTree *p = malloc(sizeof(ParseTree));
         p->pt_tag = PT_PROGRAM;
@@ -284,10 +364,16 @@ Program:
         p->pt_union.program.t_decl = $1;
         p->pt_union.program.v_decl = $2;
         p->pt_union.program.s_decl = $3;
-        p->pt_union.program.block = $4;
+        process_symbols(p);
+        $<pt_node>$ = p;
+    }
+    Block MEMBER_TOK
+    {
+        ParseTree *p = $<pt_node>4;
+        p->pt_union.program.block = $5;
         $$ = p;
     }
-    | ConstantDecl TypeDecl VarDecl SubroutineDecl Block MEMBER_TOK
+    | ConstantDecl TypeDecl VarDecl SubroutineDecl
     {
         ParseTree *p = malloc(sizeof(ParseTree));
         p->pt_tag = PT_PROGRAM;
@@ -295,7 +381,13 @@ Program:
         p->pt_union.program.t_decl = $2;
         p->pt_union.program.v_decl = $3;
         p->pt_union.program.s_decl = $4;
-        p->pt_union.program.block = $5;
+        process_symbols(p);
+        $<pt_node>$ = p;
+    }
+    Block MEMBER_TOK
+    {
+        ParseTree *p = $<pt_node>5;
+        p->pt_union.program.block = $6;
         $$ = p;
     }
 
