@@ -25,8 +25,8 @@ typedef struct ConstDeclList {
 } ConstDeclList;
 
 typedef struct TypeDecl {
-    struct TypeDeclList *head;
-    struct TypeDeclList *tail;
+    struct TypeDeclList *tdl_head;
+    struct TypeDeclList *tdl_tail;
 } TypeDecl;
 
 typedef struct TypeDeclList {
@@ -63,7 +63,7 @@ typedef struct RecordTypeList {
     struct IdentList *il_tail;
     struct Type *type;
     struct RecordTypeList *next;
-    struct RecordtypeList *prev;
+    struct RecordTypeList *prev;
 } RecordTypeList;
 
 typedef struct IdentList {

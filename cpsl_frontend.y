@@ -63,6 +63,7 @@ Program *pt_root;
     NullStatement *null_ptr;
     Expression *expr_ptr;
     LValue *lval_ptr;
+    Identifier *ident_ptr;
     bool bool_literal;
     int int_literal;
     float float_literal;
@@ -149,37 +150,38 @@ Program *pt_root;
 %type <simple_type_ptr> SimpleType;
 %type <record_type_ptr> RecordType;
 %type <record_type_l> RecordTypeList;
-%type <il_ptr> IdentList
+%type <ident_l> IdentList
 %type <array_type_ptr> ArrayType;
 %type <v_decl_ptr> VarDecl;
-%type <vdl_ptr> VarDeclList;
+%type <v_decl_l> VarDeclList;
 %type <s_decl_ptr> SubroutineDecl;
-%type <sdl_ptr> SubroutineDeclList;
+%type <s_decl_l> SubroutineDeclList;
 %type <p_decl_ptr> ProcedureDecl;
 %type <f_decl_ptr> FunctionDecl;
-%type <fpl_decl> FormalParameterList;
+%type <fp_l> FormalParameterList;
 %type <fp_ptr> FormalParameter;
 %type <body_ptr> Body;
 %type <block_ptr> Block;
-%type <sl_ptr> StatementList;
+%type <stmt_l> StatementList;
 %type <stmt_ptr> Statement;
 %type <assign_ptr> Assignment;
 %type <if_ptr> IfStatement;
-%type <eil_ptr> ElseIfList;
+%type <elseif_l> ElseIfList;
 %type <while_ptr> WhileStatement;
 %type <repeat_ptr> RepeatStatement;
 %type <for_ptr> ForStatement;
 %type <stop_ptr> StopStatement;
 %type <return_ptr> ReturnStatement;
 %type <read_ptr> ReadStatement;
-%type <rl_ptr> ReadList;
+%type <read_l> ReadList;
 %type <write_ptr> WriteStatement;
-%type <wl_ptr> WriteList;
+%type <write_l> WriteList;
 %type <pcall_ptr> ProcedureCall;
-%type <al_ptr> ArgumentList;
+%type <arg_l> ArgumentList;
 %type <null_ptr> NullStatement;
 %type <expr_ptr> Expression;
 %type <lval_ptr> LValue;
+%type <ident_ptr> Identifier;
 %type <int_literal> INT_LITERAL_TOK;
 %type <float_literal> FLOAT_LITERAL_TOK;
 %type <char_literal> CHAR_LITERAL_TOK;
@@ -438,422 +440,861 @@ ConstantDecl:
     }
 
 ConstantDeclList:
-    IDENTIFIER_TOK EQUALS_TOK Expression SEMICOLON_TOK
+    Identifier EQUALS_TOK Expression SEMICOLON_TOK
     {
-        $$.head = NULL;
-        $$.tail = NULL;
+        ConstDeclList *c_decl_l = malloc(sizeof(ConstDeclList));
+        c_decl_l->ident = $1;
+        c_decl_l->expr = $3;
+        c_decl_l->next = NULL;
+        c_decl_l->prev = NULL;
+        $$.head = c_decl_l;
+        $$.tail = c_decl_l;
     }
-    | ConstantDeclList IDENTIFIER_TOK EQUALS_TOK Expression SEMICOLON_TOK
+    | ConstantDeclList Identifier EQUALS_TOK Expression SEMICOLON_TOK
     {
-        $$.head = NULL;
-        $$.tail = NULL;
+        ConstDeclList *c_decl_l = malloc(sizeof(ConstDeclList));
+        c_decl_l->ident = $2;
+        c_decl_l->expr = $4;
+        c_decl_l->next = NULL;
+        c_decl_l->prev = $1.tail;
+        $1.tail->next = c_decl_l;
+        $$.head = $1.head;
+        $$.tail = c_decl_l;
     }
 
 SubroutineDecl:
     SubroutineDeclList
     {
-        $$ = NULL;
+        SubroutineDecl *s_decl = malloc(sizeof(SubroutineDecl));
+        s_decl->sdl_head = $1.head;
+        s_decl->sdl_tail = $1.tail;
+        $$ = s_decl;
     }
 
 SubroutineDeclList:
     ProcedureDecl
     {
-        $$ = NULL;
+        SubroutineDeclList *s_decl_l = malloc(sizeof(SubroutineDeclList));
+        s_decl_l->tag = SDL_PROC;
+        s_decl_l->sdl_union.p_decl = $1;
+        s_decl_l->next = NULL;
+        s_decl_l->prev = NULL;
+        $$.head = s_decl_l;
+        $$.tail = s_decl_l;
     }
     | FunctionDecl
     {
-        $$ = NULL;
+        SubroutineDeclList *s_decl_l = malloc(sizeof(SubroutineDeclList));
+        s_decl_l->tag = SDL_FUNC;
+        s_decl_l->sdl_union.f_decl = $1;
+        s_decl_l->next = NULL;
+        s_decl_l->prev = NULL;
+        $$.head = s_decl_l;
+        $$.tail = s_decl_l;
     }
     | SubroutineDeclList ProcedureDecl
     {
-        $$ = NULL;
+        SubroutineDeclList *s_decl_l = malloc(sizeof(SubroutineDeclList));
+        s_decl_l->tag = SDL_PROC;
+        s_decl_l->sdl_union.p_decl = $2;
+        s_decl_l->next = NULL;
+        s_decl_l->prev = $1.tail;
+        $1.tail->next = s_decl_l;
+        $$.head = $1.head;
+        $$.tail = s_decl_l;
     }
     | SubroutineDeclList FunctionDecl
     {
-        $$ = NULL;
+        SubroutineDeclList *s_decl_l = malloc(sizeof(SubroutineDeclList));
+        s_decl_l->tag = SDL_FUNC;
+        s_decl_l->sdl_union.f_decl = $2;
+        s_decl_l->next = NULL;
+        s_decl_l->prev = $1.tail;
+        $1.tail->next = s_decl_l;
+        $$.head = $1.head;
+        $$.tail = s_decl_l;
     }
 
 ProcedureDecl:
-    PROCEDURE_TOK IDENTIFIER_TOK LPAREN_TOK FormalParameterList RPAREN_TOK SEMICOLON_TOK FORWARD_TOK SEMICOLON_TOK
+    PROCEDURE_TOK Identifier LPAREN_TOK FormalParameterList RPAREN_TOK SEMICOLON_TOK FORWARD_TOK SEMICOLON_TOK
     {
-        $$ = NULL;
+        ProcedureDecl *p_decl = malloc(sizeof(ProcedureDecl));
+        p_decl->ident = $2;
+        p_decl->fpl_head = $4.head;
+        p_decl->fpl_tail = $4.tail;
+        p_decl->body = NULL;
+        $$ = p_decl;
     }
-    | PROCEDURE_TOK IDENTIFIER_TOK LPAREN_TOK FormalParameterList RPAREN_TOK SEMICOLON_TOK Body SEMICOLON_TOK
+    | PROCEDURE_TOK Identifier LPAREN_TOK FormalParameterList RPAREN_TOK SEMICOLON_TOK Body SEMICOLON_TOK
     {
-        $$ = NULL;
+        ProcedureDecl *p_decl = malloc(sizeof(ProcedureDecl));
+        p_decl->ident = $2;
+        p_decl->fpl_head = $4.head;
+        p_decl->fpl_tail = $4.tail;
+        p_decl->body = $7;
+        $$ = p_decl;
     }
 
 FunctionDecl:
-    FUNCTION_TOK IDENTIFIER_TOK LPAREN_TOK FormalParameterList RPAREN_TOK COLON_TOK Type SEMICOLON_TOK FORWARD_TOK SEMICOLON_TOK
+    FUNCTION_TOK Identifier LPAREN_TOK FormalParameterList RPAREN_TOK COLON_TOK Type SEMICOLON_TOK FORWARD_TOK SEMICOLON_TOK
     {
-        $$ = NULL;
+        FunctionDecl *f_decl = malloc(sizeof(FunctionDecl));
+        f_decl->ident = $2;
+        f_decl->fpl_head = $4.head;
+        f_decl->fpl_tail = $4.tail;
+        f_decl->return_type = $7;
+        f_decl->body = NULL;
+        $$ = f_decl;
     }
-    | FUNCTION_TOK IDENTIFIER_TOK LPAREN_TOK FormalParameterList RPAREN_TOK COLON_TOK Type SEMICOLON_TOK Body SEMICOLON_TOK
+    | FUNCTION_TOK Identifier LPAREN_TOK FormalParameterList RPAREN_TOK COLON_TOK Type SEMICOLON_TOK Body SEMICOLON_TOK
     {
-        $$ = NULL;
+        FunctionDecl *f_decl = malloc(sizeof(FunctionDecl));
+        f_decl->ident = $2;
+        f_decl->fpl_head = $4.head;
+        f_decl->fpl_tail = $4.tail;
+        f_decl->return_type = $7;
+        f_decl->body = $9;
+        $$ = f_decl;
     }
 
 FormalParameterList:
     %empty
     {
-        $$ = NULL;
+        $$.head = NULL;
+        $$.tail = NULL;
     }
     | FormalParameter
     {
-        $$ = NULL;
+        FormalParameterList *fp_l = malloc(sizeof(FormalParameterList));
+        fp_l->param = $1;
+        fp_l->next = NULL;
+        fp_l->prev = NULL;
+        $$.head = fp_l;
+        $$.tail = fp_l;
     }
     | FormalParameterList SEMICOLON_TOK FormalParameter
     {
-        $$ = NULL;
+        FormalParameterList *fp_l = malloc(sizeof(FormalParameterList));
+        fp_l->param = $3;
+        fp_l->next = NULL;
+        fp_l->prev = $1.tail;
+        $1.tail->next = fp_l;
+        $$.head = $1.head;
+        $$.tail = fp_l;
     }
 
 FormalParameter:
     IdentList COLON_TOK Type
     {
-        $$ = NULL;
+        FormalParameter *param = malloc(sizeof(FormalParameter));
+        param->tag = FP_VAR;
+        param->type = $3;
+        param->il_head = $1.head;
+        param->il_tail = $1.tail;
+        $$ = param;
     }
     | VAR_TOK IdentList COLON_TOK Type
     {
-        $$ = NULL;
+        FormalParameter *param = malloc(sizeof(FormalParameter));
+        param->tag = FP_VAR;
+        param->type = $4;
+        param->il_head = $2.head;
+        param->il_tail = $2.tail;
+        $$ = param;
     }
     | REF_TOK IdentList COLON_TOK Type
     {
-        $$ = NULL;
+        FormalParameter *param = malloc(sizeof(FormalParameter));
+        param->tag = FP_REF;
+        param->type = $4;
+        param->il_head = $2.head;
+        param->il_tail = $2.tail;
+        $$ = param;
     }
 
 /* TODO will have to add mid-rule actions here, too */
 Body:
     Block
     {
-        $$ = NULL;
+        Body *b = malloc(sizeof(Body));
+        b->c_decl = NULL;
+        b->t_decl = NULL;
+        b->v_decl = NULL;
+        b->block = $1;
+        $$ = b;
     }
-    | ConstantDecl Block
+    | ConstantDecl
     {
-        $$ = NULL;
+        Body *b = malloc(sizeof(Body));
+        b->c_decl = $1;
+        b->t_decl = NULL;
+        b->v_decl = NULL;
+        $<body_ptr>$ = b;
     }
-    | TypeDecl Block
+    Block
     {
-        $$ = NULL;
+        Body *b = $<body_ptr>2;
+        b->block = $3;
+        $$ = b;
     }
-    | VarDecl Block
+    | TypeDecl
     {
-        $$ = NULL;
+        Body *b = malloc(sizeof(Body));
+        b->c_decl = NULL;
+        b->t_decl = $1;
+        b->v_decl = NULL;
+        $<body_ptr>$ = b;
     }
-    | ConstantDecl TypeDecl Block
+    Block
     {
-        $$ = NULL;
+        Body *b = $<body_ptr>2;
+        b->block = $3;
+        $$ = b;
     }
-    | ConstantDecl VarDecl Block
+    | VarDecl
     {
-        $$ = NULL;
+        Body *b = malloc(sizeof(Body));
+        b->c_decl = NULL;
+        b->t_decl = NULL;
+        b->v_decl = $1;
+        $<body_ptr>$ = b;
     }
-    | TypeDecl VarDecl Block
+    Block
     {
-        $$ = NULL;
+        Body *b = $<body_ptr>2;
+        b->block = $3;
+        $$ = b;
     }
-    | ConstantDecl TypeDecl VarDecl Block
+    | ConstantDecl TypeDecl
     {
-        $$ = NULL;
+        Body *b = malloc(sizeof(Body));
+        b->c_decl = $1;
+        b->t_decl = $2;
+        b->v_decl = NULL;
+        $<body_ptr>$ = b;
+    }
+    Block
+    {
+        Body *b = $<body_ptr>3;
+        b->block = $4;
+        $$ = b;
+    }
+    | ConstantDecl VarDecl
+    {
+        Body *b = malloc(sizeof(Body));
+        b->c_decl = $1;
+        b->t_decl = NULL;
+        b->v_decl = $2;
+        $<body_ptr>$ = b;
+    }
+    Block
+    {
+        Body *b = $<body_ptr>3;
+        b->block = $4;
+        $$ = b;
+    }
+    | TypeDecl VarDecl
+    {
+        Body *b = malloc(sizeof(Body));
+        b->c_decl = NULL;
+        b->t_decl = $1;
+        b->v_decl = $2;
+        $<body_ptr>$ = b;
+    }
+    Block
+    {
+        Body *b = $<body_ptr>3;
+        b->block = $4;
+        $$ = b;
+    }
+    | ConstantDecl TypeDecl VarDecl
+    {
+        Body *b = malloc(sizeof(Body));
+        b->c_decl = $1;
+        b->t_decl = $2;
+        b->v_decl = $3;
+        $<body_ptr>$ = b;
+    }
+    Block
+    {
+        Body *b = $<body_ptr>4;
+        b->block = $5;
+        $$ = b;
     }
 
 Block:
     BEGIN_TOK StatementList END_TOK
     {
-        $$ = NULL;
+        Block *b = malloc(sizeof(Block));
+        b->sl_head = $2.head;
+        b->sl_tail = $2.tail;
+        $$ = b;
     }
 
 TypeDecl:
     TYPE_TOK TypeDeclList
     {
-        $$ = NULL;
+        TypeDecl *t_decl = malloc(sizeof(TypeDecl));
+        t_decl->tdl_head = $2.head;
+        t_decl->tdl_tail = $2.tail;
+        $$ = t_decl;
     }
 
 TypeDeclList:
-    IDENTIFIER_TOK EQUALS_TOK Type SEMICOLON_TOK
+    Identifier EQUALS_TOK Type SEMICOLON_TOK
     {
-        $$.head = NULL;
-        $$.tail = NULL;
+        TypeDeclList *t_decl_l = malloc(sizeof(TypeDeclList));
+        t_decl_l->ident = $1;
+        t_decl_l->type = $3;
+        t_decl_l->next = NULL;
+        t_decl_l->prev = NULL;
+        $$.head = t_decl_l;
+        $$.tail = t_decl_l;
     }
-    | TypeDeclList IDENTIFIER_TOK EQUALS_TOK Type SEMICOLON_TOK
+    | TypeDeclList Identifier EQUALS_TOK Type SEMICOLON_TOK
     {
-        $$.head = NULL;
-        $$.tail = NULL;
+        TypeDeclList *t_decl_l = malloc(sizeof(TypeDeclList));
+        t_decl_l->ident = $2;
+        t_decl_l->type = $4;
+        t_decl_l->next = NULL;
+        t_decl_l->prev = $1.tail;
+        $1.tail->next = t_decl_l;
+        $$.head = $1.head;
+        $$.tail = t_decl_l;
     }
 
 Type:
     SimpleType
     {
-        $$ = NULL;
+        /* TODO simple types are redeclarations of builtin types or
+        previously defined types, so look them up instead of building a new one */
+        Type *t = malloc(sizeof(Type));
+        t->tag = TYPE_SIMPLE;
+        t->type_union.simple = $1;
+        $$ = t;
     }
     | RecordType
     {
-        $$ = NULL;
+        Type *t = malloc(sizeof(Type));
+        t->tag = TYPE_RECORD;
+        t->type_union.record = $1;
+        $$ = t;
     }
     | ArrayType
     {
-        $$ = NULL;
+        Type *t = malloc(sizeof(Type));
+        t->tag = TYPE_ARRAY;
+        t->type_union.array = $1;
+        $$ = t;
     }
 
 SimpleType:
     INTEGER_TOK
     {
-        $$ = NULL;
+        SimpleType *s = malloc(sizeof(SimpleType));
+        Identifier *ident = malloc(sizeof(Identifier));
+        ident->name = strdup("integer");
+        s->ident = ident;
+        $$ = s;
     }
     | CHAR_TOK
     {
-        $$ = NULL;
+        SimpleType *s = malloc(sizeof(SimpleType));
+        Identifier *ident = malloc(sizeof(Identifier));
+        ident->name = strdup("char");
+        s->ident = ident;
+        $$ = s;
     }
     | FLOAT_TOK
     {
-        $$ = NULL;
+        SimpleType *s = malloc(sizeof(SimpleType));
+        Identifier *ident = malloc(sizeof(Identifier));
+        ident->name = strdup("float");
+        s->ident = ident;
+        $$ = s;
     }
     | BOOLEAN_TOK
     {
-        $$ = NULL;
+        SimpleType *s = malloc(sizeof(SimpleType));
+        Identifier *ident = malloc(sizeof(Identifier));
+        ident->name = strdup("boolean");
+        s->ident = ident;
+        $$ = s;
     }
-    | IDENTIFIER_TOK
+    | Identifier
     {
-        $$ = NULL;
+        SimpleType *s = malloc(sizeof(SimpleType));
+        s->ident = $1;
+        $$ = s;
     }
 
 RecordType:
     RECORD_TOK END_TOK
     {
-        $$ = NULL;
+        RecordType *r = malloc(sizeof(RecordType));
+        r->rtl_head = NULL;
+        r->rtl_tail = NULL;
+        $$ = r;
     }
     | RECORD_TOK RecordTypeList END_TOK
     {
-        $$ = NULL;
+        RecordType *r = malloc(sizeof(RecordType));
+        r->rtl_head = $2.head;
+        r->rtl_tail = $2.tail;
+        $$ = r;
     }
 
 RecordTypeList:
     IdentList COLON_TOK Type SEMICOLON_TOK
     {
-        $$.head = NULL;
-        $$.tail = NULL;
+        RecordTypeList *record_type_l = malloc(sizeof(RecordTypeList));
+        record_type_l->il_head = $1.head;
+        record_type_l->il_tail = $1.tail;
+        record_type_l->type = $3;
+        record_type_l->next = NULL;
+        record_type_l->prev = NULL;
+        $$.head = record_type_l;
+        $$.tail = record_type_l;
     }
     | RecordTypeList IdentList COLON_TOK Type SEMICOLON_TOK
     {
-        $$.head = NULL;
-        $$.tail = NULL;
+        RecordTypeList *record_type_l = malloc(sizeof(RecordTypeList));
+        record_type_l->il_head = $2.head;
+        record_type_l->il_tail = $2.tail;
+        record_type_l->type = $4;
+        record_type_l->next = NULL;
+        record_type_l->prev = $1.head;
+        $1.tail->next = record_type_l;
+        $$.head = $1.head;
+        $$.tail = record_type_l;
     }
 
 ArrayType:
     ARRAY_TOK LBRACKET_TOK Expression COLON_TOK Expression RBRACKET_TOK OF_TOK Type
     {
-        $$ = NULL;
+        ArrayType *a = malloc(sizeof(ArrayType));
+        a->begin_expr = $3;
+        a->end_expr = $5;
+        a->type = $8;
+        $$ = a;
     }
 
 IdentList:
-    IDENTIFIER_TOK
+    Identifier
     {
-        $$ = NULL;
+        IdentList *ident_l = malloc(sizeof(IdentList));
+        ident_l->ident = $1;
+        ident_l->next = NULL;
+        ident_l->prev = NULL;
+        $$.head = ident_l;
+        $$.tail = ident_l;
     }
-    | IdentList COMMA_TOK IDENTIFIER_TOK
+    | IdentList COMMA_TOK Identifier
     {
-        $$ = NULL;
+        IdentList *ident_l = malloc(sizeof(IdentList));
+        ident_l->ident = $3;
+        ident_l->next = NULL;
+        ident_l->prev = $1.tail;
+        $1.tail->next = ident_l;
+        $$.head = $1.head;
+        $$.tail = ident_l;
     }
 
 VarDecl:
     VAR_TOK VarDeclList
     {
-        $$ = NULL;
+        VarDecl *v_decl = malloc(sizeof(VarDecl));
+        v_decl->vdl_head = $2.head;
+        v_decl->vdl_tail = $2.tail;
+        $$ = v_decl;
     }
 
 VarDeclList:
     IdentList COLON_TOK Type SEMICOLON_TOK
     {
-        $$ = NULL;
+        VarDeclList *v_decl_l = malloc(sizeof(VarDeclList));
+        v_decl_l->il_head = $1.head;
+        v_decl_l->il_tail = $1.tail;
+        v_decl_l->type = $3;
+        v_decl_l->next = NULL;
+        v_decl_l->prev = NULL;
+        $$.head = v_decl_l;
+        $$.tail = v_decl_l;
     }
     | VarDeclList IdentList COLON_TOK Type SEMICOLON_TOK
     {
-        $$ = NULL;
+        VarDeclList *v_decl_l = malloc(sizeof(VarDeclList));
+        v_decl_l->il_head = $2.head;
+        v_decl_l->il_tail = $2.tail;
+        v_decl_l->type = $4;
+        v_decl_l->next = NULL;
+        v_decl_l->prev = $1.tail;
+        $1.tail->next = v_decl_l;
+        $$.head = $1.head;
+        $$.tail = v_decl_l;
     }
 
 StatementList:
     Statement
     {
-        $$ = NULL;
+        StatementList *stmt_l = malloc(sizeof(StatementList));
+        stmt_l->stmt = $1;
+        stmt_l->next = NULL;
+        stmt_l->prev = NULL;
+        $$.head = stmt_l;
+        $$.tail = stmt_l;
     }
     | StatementList SEMICOLON_TOK Statement
     {
-        $$ = NULL;
+        StatementList *stmt_l = malloc(sizeof(StatementList));
+        stmt_l->stmt = $3;
+        stmt_l->next = NULL;
+        stmt_l->prev = $1.tail;
+        $1.tail->next = stmt_l;
+        $$.head = $1.head;
+        $$.tail = stmt_l;
     }
 
 Statement:
     Assignment
     {
-        $$ = NULL;
+        Statement *s = malloc(sizeof(Statement));
+        s->tag = STMT_ASSIGN;
+        s->stmt_union.assign_stmt = $1;
+        $$ = s;
     }
     | IfStatement
     {
-        $$ = NULL;
+        Statement *s = malloc(sizeof(Statement));
+        s->tag = STMT_IF;
+        s->stmt_union.if_stmt = $1;
+        $$ = s;
     }
     | WhileStatement
     {
-        $$ = NULL;
+        Statement *s = malloc(sizeof(Statement));
+        s->tag = STMT_WHILE;
+        s->stmt_union.while_stmt = $1;
+        $$ = s;
     }
     | RepeatStatement
     {
-        $$ = NULL;
+        Statement *s = malloc(sizeof(Statement));
+        s->tag = STMT_REPEAT;
+        s->stmt_union.repeat_stmt = $1;
+        $$ = s;
     }
     | ForStatement
     {
-        $$ = NULL;
+        Statement *s = malloc(sizeof(Statement));
+        s->tag = STMT_FOR;
+        s->stmt_union.for_stmt = $1;
+        $$ = s;
     }
     | StopStatement
     {
-        $$ = NULL;
+        Statement *s = malloc(sizeof(Statement));
+        s->tag = STMT_STOP;
+        s->stmt_union.stop_stmt = $1;
+        $$ = s;
     }
     | ReturnStatement
     {
-        $$ = NULL;
+        Statement *s = malloc(sizeof(Statement));
+        s->tag = STMT_RETURN;
+        s->stmt_union.return_stmt = $1;
+        $$ = s;
     }
     | ReadStatement
     {
         $$ = NULL;
+        Statement *s = malloc(sizeof(Statement));
+        s->tag = STMT_READ;
+        s->stmt_union.read_stmt = $1;
+        $$ = s;
     }
     | WriteStatement
     {
         $$ = NULL;
+        Statement *s = malloc(sizeof(Statement));
+        s->tag = STMT_WRITE;
+        s->stmt_union.write_stmt = $1;
+        $$ = s;
     }
     | ProcedureCall
     {
         $$ = NULL;
+        Statement *s = malloc(sizeof(Statement));
+        s->tag = STMT_PCALL;
+        s->stmt_union.pcall_stmt = $1;
+        $$ = s;
     }
     | NullStatement
     {
-        $$ = NULL;
+        Statement *s = malloc(sizeof(Statement));
+        s->tag = STMT_NULL;
+        s->stmt_union.null_stmt = $1;
+        $$ = s;
     }
 
 Assignment:
     LValue ASSIGN_TOK Expression
     {
-        $$ = NULL;
+        AssignStatement *assign = malloc(sizeof(AssignStatement));
+        assign->lvalue = $1;
+        assign->expr = $3;
+        $$ = assign;
     }
 
 IfStatement:
     IF_TOK Expression THEN_TOK StatementList END_TOK
     {
-        $$ = NULL;
+        IfStatement *if_stmt = malloc(sizeof(IfStatement));
+        if_stmt->if_cond = $2;
+        if_stmt->if_sl_head = $4.head;
+        if_stmt->if_sl_tail = $4.tail;
+        if_stmt->eil_head = NULL;
+        if_stmt->eil_tail = NULL;
+        if_stmt->else_sl_head = NULL;
+        if_stmt->else_sl_tail = NULL;
+        $$ = if_stmt;
     }
     | IF_TOK Expression THEN_TOK StatementList ELSE_TOK StatementList END_TOK
     {
-        $$ = NULL;
+        IfStatement *if_stmt = malloc(sizeof(IfStatement));
+        if_stmt->if_cond = $2;
+        if_stmt->if_sl_head = $4.head;
+        if_stmt->if_sl_tail = $4.tail;
+        if_stmt->eil_head = NULL;
+        if_stmt->eil_tail = NULL;
+        if_stmt->else_sl_head = $6.head;
+        if_stmt->else_sl_tail = $6.tail;
+        $$ = if_stmt;
     }
     | IF_TOK Expression THEN_TOK StatementList ElseIfList END_TOK
     {
-        $$ = NULL;
+        IfStatement *if_stmt = malloc(sizeof(IfStatement));
+        if_stmt->if_cond = $2;
+        if_stmt->if_sl_head = $4.head;
+        if_stmt->if_sl_tail = $4.tail;
+        if_stmt->eil_head = $5.head;
+        if_stmt->eil_tail = $5.tail;
+        if_stmt->else_sl_head = NULL;
+        if_stmt->else_sl_tail = NULL;
+        $$ = if_stmt;
     }
     | IF_TOK Expression THEN_TOK StatementList ElseIfList ELSE_TOK StatementList END_TOK
     {
-        $$ = NULL;
+        IfStatement *if_stmt = malloc(sizeof(IfStatement));
+        if_stmt->if_cond = $2;
+        if_stmt->if_sl_head = $4.head;
+        if_stmt->if_sl_tail = $4.tail;
+        if_stmt->eil_head = $5.head;
+        if_stmt->eil_tail = $5.tail;
+        if_stmt->else_sl_head = $7.head;
+        if_stmt->else_sl_tail = $7.tail;
+        $$ = if_stmt;
     }
 
 ElseIfList:
     ELSEIF_TOK Expression THEN_TOK StatementList
     {
-        $$ = NULL;
+        ElseIfList *ei_l = malloc(sizeof(ElseIfList));
+        ei_l->ei_cond = $2;
+        ei_l->ei_sl_head = $4.head;
+        ei_l->ei_sl_tail = $4.tail;
+        ei_l->next = NULL;
+        ei_l->prev = NULL;
+        $$.head = ei_l;
+        $$.tail = ei_l;
     }
     | ElseIfList ELSEIF_TOK Expression THEN_TOK StatementList
     {
-        $$ = NULL;
+        ElseIfList *ei_l = malloc(sizeof(ElseIfList));
+        ei_l->ei_cond = $3;
+        ei_l->ei_sl_head = $5.head;
+        ei_l->ei_sl_tail = $5.tail;
+        ei_l->next = NULL;
+        ei_l->prev = $1.tail;
+        $1.tail->next = ei_l;
+        $$.head = $1.head;
+        $$.tail = ei_l;
     }
 
 WhileStatement:
     WHILE_TOK Expression DO_TOK StatementList END_TOK
     {
-        $$ = NULL;
+        WhileStatement *while_stmt = malloc(sizeof(WhileStatement));
+        while_stmt->while_cond = $2;
+        while_stmt->while_sl_head = $4.head;
+        while_stmt->while_sl_tail = $4.tail;
+        $$ = while_stmt;
     }
 
 RepeatStatement:
     REPEAT_TOK StatementList UNTIL_TOK Expression
     {
-        $$ = NULL;
+        RepeatStatement *repeat_stmt = malloc(sizeof(RepeatStatement));
+        repeat_stmt->repeat_cond = $4;
+        repeat_stmt->repeat_sl_head = $2.head;
+        repeat_stmt->repeat_sl_tail = $2.tail;
+        $$ = repeat_stmt;
     }
 
 ForStatement:
-    FOR_TOK IDENTIFIER_TOK ASSIGN_TOK Expression TO_TOK Expression DO_TOK StatementList END_TOK
+    FOR_TOK Identifier ASSIGN_TOK Expression TO_TOK Expression
     {
-        $$ = NULL;
+        ForStatement *for_stmt = malloc(sizeof(ForStatement));
+        for_stmt->tag = FOR_UP;
+        for_stmt->loop_var = $2;
+        for_stmt->begin_expr = $4;
+        for_stmt->end_expr = $6;
+        $<for_ptr>$ = for_stmt;
     }
-    | FOR_TOK IDENTIFIER_TOK ASSIGN_TOK Expression DOWNTO_TOK Expression DO_TOK StatementList END_TOK
+    DO_TOK StatementList END_TOK
     {
-        $$ = NULL;
+        ForStatement *for_stmt = $<for_ptr>7;
+        for_stmt->for_sl_head = $9.head;
+        for_stmt->for_sl_tail = $9.tail;
+    }
+    | FOR_TOK Identifier ASSIGN_TOK Expression DOWNTO_TOK Expression
+    {
+        ForStatement *for_stmt = malloc(sizeof(ForStatement));
+        for_stmt->tag = FOR_DOWN;
+        for_stmt->loop_var = $2;
+        for_stmt->begin_expr = $4;
+        for_stmt->end_expr = $6;
+        $<for_ptr>$ = for_stmt;
+    }
+    DO_TOK StatementList END_TOK
+    {
+        ForStatement *for_stmt = $<for_ptr>7;
+        for_stmt->for_sl_head = $9.head;
+        for_stmt->for_sl_tail = $9.tail;
     }
 
 StopStatement:
     STOP_TOK
     {
-        $$ = NULL;
+        /* stop statement has no members */
+        $$ = malloc(sizeof(StopStatement));
     }
 
 ReturnStatement:
     RETURN_TOK
     {
-        $$ = NULL;
+        ReturnStatement *return_stmt = malloc(sizeof(ReturnStatement));
+        return_stmt->return_val = NULL;
+        $$ = return_stmt;
     }
     | RETURN_TOK Expression
     {
-        $$ = NULL;
+        ReturnStatement *return_stmt = malloc(sizeof(ReturnStatement));
+        return_stmt->return_val = $2;
+        $$ = return_stmt;
     }
 
 ReadStatement:
     READ_TOK LPAREN_TOK ReadList RPAREN_TOK
     {
-        $$ = NULL;
+        ReadStatement *read_stmt = malloc(sizeof(ReadStatement));
+        read_stmt->rl_head = $3.head;
+        read_stmt->rl_tail = $3.tail;
+        $$ = read_stmt;
     }
 
 ReadList:
     LValue
     {
-        $$ = NULL;
+        ReadList *read_l = malloc(sizeof(ReadList));
+        read_l->lvalue = $1;
+        read_l->next = NULL;
+        read_l->prev = NULL;
+        $$.head = read_l;
+        $$.tail = read_l;
     }
     | ReadList COMMA_TOK LValue
     {
-        $$ = NULL;
+        ReadList *read_l = malloc(sizeof(ReadList));
+        read_l->lvalue = $3;
+        read_l->next = NULL;
+        read_l->prev = $1.tail;
+        $1.tail->next = read_l;
+        $$.head = $1.head;
+        $$.tail = read_l;
     }
 
 WriteStatement:
     WRITE_TOK LPAREN_TOK WriteList RPAREN_TOK
     {
-        $$ = NULL;
+        WriteStatement *write_stmt = malloc(sizeof(WriteStatement));
+        write_stmt->wl_head = $3.head;
+        write_stmt->wl_tail = $3.tail;
+        $$ = write_stmt;
     }
 
 WriteList:
     Expression
     {
-        $$ = NULL;
+        WriteList *write_l = malloc(sizeof(WriteList));
+        write_l->expr = $1;
+        write_l->next = NULL;
+        write_l->prev = NULL;
+        $$.head = write_l;
+        $$.tail = write_l;
     }
     | WriteList COMMA_TOK Expression
     {
-        $$ = NULL;
+        WriteList *write_l = malloc(sizeof(WriteList));
+        write_l->expr = $3;
+        write_l->next = NULL;
+        write_l->prev = $1.tail;
+        $1.tail->next = write_l;
+        $$.head = $1.head;
+        $$.tail = write_l;
     }
 
 ProcedureCall:
-    IDENTIFIER_TOK LPAREN_TOK ArgumentList RPAREN_TOK
+    Identifier LPAREN_TOK ArgumentList RPAREN_TOK
     {
-        $$ = NULL;
+        PCallStatement *pcall_stmt = malloc(sizeof(PCallStatement));
+        pcall_stmt->ident = $1;
+        pcall_stmt->al_head = $3.head;
+        pcall_stmt->al_tail = $3.tail;
+        $$ = pcall_stmt;
     }
 
 ArgumentList:
     %empty
     {
-        $$ = NULL;
+        $$.head = NULL;
+        $$.tail = NULL;
     }
     | Expression
     {
-        $$ = NULL;
+        ArgumentList *arg_l = malloc(sizeof(ArgumentList));
+        arg_l->expr = $1;
+        arg_l->next = NULL;
+        arg_l->prev = NULL;
+        $$.head = arg_l;
+        $$.tail = arg_l;
     }
     | ArgumentList COMMA_TOK Expression
     {
-        $$ = NULL;
+        ArgumentList *arg_l = malloc(sizeof(ArgumentList));
+        arg_l->expr = $3;
+        arg_l->next = NULL;
+        arg_l->prev = $1.head;
+        $1.head->next = arg_l;
+        $$.head = $1.head;
+        $$.tail = arg_l;
     }
 
 NullStatement:
     %empty
     {
-        $$ = NULL;
+        /* null statement has no members */
+        $$ = malloc(sizeof(NullStatement));
     }
 
 Expression:
@@ -921,7 +1362,7 @@ Expression:
     {
         $$ = NULL;
     }
-    | IDENTIFIER_TOK LPAREN_TOK ArgumentList RPAREN_TOK
+    | Identifier LPAREN_TOK ArgumentList RPAREN_TOK
     {
         $$ = NULL;
     }
@@ -971,15 +1412,21 @@ Expression:
     }
 
 LValue:
-    IDENTIFIER_TOK
+    Identifier
     {
         $$ = NULL;
     }
-    | LValue MEMBER_TOK IDENTIFIER_TOK
+    | LValue MEMBER_TOK Identifier
     {
         $$ = NULL;
     }
     | LValue LBRACKET_TOK Expression RBRACKET_TOK
+    {
+        $$ = NULL;
+    }
+
+Identifier:
+    IDENTIFIER_TOK
     {
         $$ = NULL;
     }
