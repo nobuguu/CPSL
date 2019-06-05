@@ -292,9 +292,9 @@ typedef struct Expression {
         } bin_op;
         struct Expression *un_op;
         struct {
-            Identifier *ident;
-            ArgumentList *al_head;
-            ArgumentList *al_tail;
+            struct Identifier *ident;
+            struct ArgumentList *al_head;
+            struct ArgumentList *al_tail;
         } fcall;
         struct LValue *lvalue;
         int int_literal;

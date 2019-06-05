@@ -188,6 +188,7 @@ Program *pt_root;
 %type <str_literal> STRING_LITERAL_TOK;
 %type <bool_literal> TRUE_TOK;
 %type <bool_literal> FALSE_TOK;
+%type <str_literal> IDENTIFIER_TOK;
 
 %%
 
@@ -1521,7 +1522,7 @@ LValue:
     | LValue MEMBER_TOK Identifier
     {
         LValue *lvalue = malloc(sizeof(LValue));
-        lvalue->tag = LV_MEMBER:
+        lvalue->tag = LV_MEMBER;
         lvalue->lv_union.lv_member.ident = $3;
         lvalue->lv_union.lv_member.parent_lv = $1;
         $$ = lvalue;
