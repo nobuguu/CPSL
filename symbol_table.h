@@ -18,12 +18,27 @@ typedef struct SymbolTable {
 } SymbolTable;
 
 typedef struct ConstTable {
+    Identifier *ident;
+    ConstDecl *c_decl;
+    struct ConstTable *next;
 } ConstTable;
+
 typedef struct TypeTable {
+    Identifier *ident;
+    Type *type;
+    struct TypeTable *next;
 } TypeTable;
+
 typedef struct VarTable {
+    Identifier *ident;
+    VarDecl *v_decl;
+    struct VarTable *next;
 } VarTable;
+
 typedef struct SubroutineTable {
+    Identifier *ident;
+    SubroutineDecl *s_decl;
+    struct SubroutineTable *next;
 } SubroutineTable;
 
 typedef struct Context {
@@ -34,7 +49,11 @@ typedef struct Context {
 Context *global_symbol_context;
 
 void init_table(void);
-void add_to_table(SymbolTableTag, void*, void*);
+void add_to_table(SymbolTableTag, Identifier*, void*);
+void add_const_to_table(Identifier*, ConstDecl*);
+void add_type_to_table(Identifier*, Type*);
+void add_var_to_table(Identifier*, VarDecl*);
+void add_sub_to_table(Identifier*, SubroutineDecl*);
 void push_table(void);
 void pop_table(void);
 void *lookup_by_ident(SymbolTableTag, void*);

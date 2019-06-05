@@ -197,6 +197,7 @@ Program *pt_root;
 Program:
     Block MEMBER_TOK
     {
+        push_table();
         Program *p = malloc(sizeof(Program));
         p->c_decl = NULL;
         p->t_decl = NULL;
