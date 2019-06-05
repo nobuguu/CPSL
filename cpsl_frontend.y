@@ -197,7 +197,6 @@ Program *pt_root;
 Program:
     Block MEMBER_TOK
     {
-        push_table();
         Program *p = malloc(sizeof(Program));
         p->c_decl = NULL;
         p->t_decl = NULL;
@@ -438,6 +437,9 @@ ConstantDecl:
         ConstDecl *c_decl = malloc(sizeof(ConstDecl));
         c_decl->cdl_head = $2.head;
         c_decl->cdl_tail = $2.tail;
+        for (ConstDeclList *c = c_decl->cdl_head; c != NULL; c = c->next) {
+            add_to_table(ST_CONST, c->ident, c->expr);
+        }
         $$ = c_decl;
     }
 
@@ -470,6 +472,8 @@ SubroutineDecl:
         SubroutineDecl *s_decl = malloc(sizeof(SubroutineDecl));
         s_decl->sdl_head = $1.head;
         s_decl->sdl_tail = $1.tail;
+        for (SubroutineDeclList *s = s_decl->sdl_head; s != NULL; s = s->next) {
+        }
         $$ = s_decl;
     }
 
@@ -518,44 +522,67 @@ SubroutineDeclList:
     }
 
 ProcedureDecl:
-    PROCEDURE_TOK Identifier LPAREN_TOK FormalParameterList RPAREN_TOK SEMICOLON_TOK FORWARD_TOK SEMICOLON_TOK
+    PROCEDURE_TOK Identifier LPAREN_TOK FormalParameterList RPAREN_TOK SEMICOLON_TOK
     {
         ProcedureDecl *p_decl = malloc(sizeof(ProcedureDecl));
         p_decl->ident = $2;
         p_decl->fpl_head = $4.head;
         p_decl->fpl_tail = $4.tail;
+        $<p_decl_ptr>$ = p_decl;
+        push_table();
+    }
+    FORWARD_TOK SEMICOLON_TOK
+    {
+        ProcedureDecl *p_decl = $<p_decl_ptr>6;
         p_decl->body = NULL;
         $$ = p_decl;
     }
-    | PROCEDURE_TOK Identifier LPAREN_TOK FormalParameterList RPAREN_TOK SEMICOLON_TOK Body SEMICOLON_TOK
+    | PROCEDURE_TOK Identifier LPAREN_TOK FormalParameterList RPAREN_TOK SEMICOLON_TOK
     {
         ProcedureDecl *p_decl = malloc(sizeof(ProcedureDecl));
         p_decl->ident = $2;
         p_decl->fpl_head = $4.head;
         p_decl->fpl_tail = $4.tail;
-        p_decl->body = $7;
+        $<p_decl_ptr>$ = p_decl;
+        push_table();
+    }
+    Body SEMICOLON_TOK
+    {
+        ProcedureDecl *p_decl = $<p_decl_ptr>6;
+        p_decl->body = $8;
         $$ = p_decl;
     }
 
 FunctionDecl:
-    FUNCTION_TOK Identifier LPAREN_TOK FormalParameterList RPAREN_TOK COLON_TOK Type SEMICOLON_TOK FORWARD_TOK SEMICOLON_TOK
+    FUNCTION_TOK Identifier LPAREN_TOK FormalParameterList RPAREN_TOK COLON_TOK Type SEMICOLON_TOK
     {
         FunctionDecl *f_decl = malloc(sizeof(FunctionDecl));
         f_decl->ident = $2;
         f_decl->fpl_head = $4.head;
         f_decl->fpl_tail = $4.tail;
         f_decl->return_type = $7;
-        f_decl->body = NULL;
-        $$ = f_decl;
+        $<f_decl_ptr>$ = f_decl;
+        push_table();
     }
-    | FUNCTION_TOK Identifier LPAREN_TOK FormalParameterList RPAREN_TOK COLON_TOK Type SEMICOLON_TOK Body SEMICOLON_TOK
+    FORWARD_TOK SEMICOLON_TOK
+    {
+        FunctionDecl *f_decl = $<f_decl_ptr>8;
+        f_decl->body = NULL;
+    }
+    | FUNCTION_TOK Identifier LPAREN_TOK FormalParameterList RPAREN_TOK COLON_TOK Type SEMICOLON_TOK
     {
         FunctionDecl *f_decl = malloc(sizeof(FunctionDecl));
         f_decl->ident = $2;
         f_decl->fpl_head = $4.head;
         f_decl->fpl_tail = $4.tail;
         f_decl->return_type = $7;
-        f_decl->body = $9;
+        $<f_decl_ptr>$ = f_decl;
+        push_table();
+    }
+    Body SEMICOLON_TOK
+    {
+        FunctionDecl *f_decl = $<f_decl_ptr>8;
+        f_decl->body = $10;
         $$ = f_decl;
     }
 
@@ -614,7 +641,6 @@ FormalParameter:
         $$ = param;
     }
 
-/* TODO will have to add mid-rule actions here, too */
 Body:
     Block
     {

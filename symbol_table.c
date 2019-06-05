@@ -30,18 +30,19 @@ void init_table(void) {
         t->type_union.simple = simple;
         add_to_table(ST_TYPE, ident, t);
     }
+    push_table();
 }
 
 void add_to_table(SymbolTableTag tag, Identifier *ident, void *symbol) {
     switch (tag) {
         case ST_CONST:
-            add_const_to_table( ident, (ConstDecl*) symbol);
+            add_const_to_table( ident, (Expression*) symbol);
             break;
         case ST_TYPE:
             add_type_to_table( ident, (Type*) symbol);
             break;
         case ST_VAR:
-            add_var_to_table( ident, (VarDecl*) symbol);
+            add_var_to_table( ident, (Type*) symbol);
             break;
         case ST_SUB:
             add_sub_to_table( ident, (SubroutineDecl*) symbol);
@@ -51,7 +52,7 @@ void add_to_table(SymbolTableTag tag, Identifier *ident, void *symbol) {
     }
 }
 
-void add_const_to_table(Identifier *ident, ConstDecl *c_decl) {
+void add_const_to_table(Identifier *ident, Expression *c_decl) {
     ConstTable *c_table = malloc(sizeof(ConstTable));
     c_table->ident = ident;
     c_table->c_decl = c_decl;
@@ -67,7 +68,7 @@ void add_type_to_table(Identifier *ident, Type *type) {
     global_symbol_context->sym_t->t_table = t_table;
 }
 
-void add_var_to_table(Identifier *ident, VarDecl *v_decl) {
+void add_var_to_table(Identifier *ident, Type *v_decl) {
     VarTable *v_table = malloc(sizeof(VarTable));
     v_table->ident = ident;
     v_table->v_decl = v_decl;

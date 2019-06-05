@@ -19,7 +19,7 @@ typedef struct SymbolTable {
 
 typedef struct ConstTable {
     Identifier *ident;
-    ConstDecl *c_decl;
+    Expression *c_decl;
     struct ConstTable *next;
 } ConstTable;
 
@@ -31,7 +31,7 @@ typedef struct TypeTable {
 
 typedef struct VarTable {
     Identifier *ident;
-    VarDecl *v_decl;
+    Type *v_decl;
     struct VarTable *next;
 } VarTable;
 
@@ -50,9 +50,9 @@ Context *global_symbol_context;
 
 void init_table(void);
 void add_to_table(SymbolTableTag, Identifier*, void*);
-void add_const_to_table(Identifier*, ConstDecl*);
+void add_const_to_table(Identifier*, Expression*);
 void add_type_to_table(Identifier*, Type*);
-void add_var_to_table(Identifier*, VarDecl*);
+void add_var_to_table(Identifier*, Type*);
 void add_sub_to_table(Identifier*, SubroutineDecl*);
 void push_table(void);
 void pop_table(void);
