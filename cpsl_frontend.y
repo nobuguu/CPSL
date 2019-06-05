@@ -1300,135 +1300,247 @@ NullStatement:
 Expression:
     Expression OR_TOK Expression
     {
-        $$ = NULL;
+        Expression *e = malloc(sizeof(Expression));
+        e->tag = EXPR_OR;
+        e->expr_union.bin_op.left = $1;
+        e->expr_union.bin_op.right = $3;
+        $$ = e;
     }
     | Expression AND_TOK Expression
     {
-        $$ = NULL;
+        Expression *e = malloc(sizeof(Expression));
+        e->tag = EXPR_AND;
+        e->expr_union.bin_op.left = $1;
+        e->expr_union.bin_op.right = $3;
+        $$ = e;
     }
     | Expression EQUALS_TOK Expression
     {
-        $$ = NULL;
+        Expression *e = malloc(sizeof(Expression));
+        e->tag = EXPR_EQ;
+        e->expr_union.bin_op.left = $1;
+        e->expr_union.bin_op.right = $3;
+        $$ = e;
     }
     | Expression NEQ_TOK Expression
     {
-        $$ = NULL;
+        Expression *e = malloc(sizeof(Expression));
+        e->tag = EXPR_NEQ;
+        e->expr_union.bin_op.left = $1;
+        e->expr_union.bin_op.right = $3;
+        $$ = e;
     }
     | Expression LE_TOK Expression
     {
-        $$ = NULL;
+        Expression *e = malloc(sizeof(Expression));
+        e->tag = EXPR_LE;
+        e->expr_union.bin_op.left = $1;
+        e->expr_union.bin_op.right = $3;
+        $$ = e;
     }
     | Expression GE_TOK Expression
     {
-        $$ = NULL;
+        Expression *e = malloc(sizeof(Expression));
+        e->tag = EXPR_GE;
+        e->expr_union.bin_op.left = $1;
+        e->expr_union.bin_op.right = $3;
+        $$ = e;
     }
     | Expression LT_TOK Expression
     {
-        $$ = NULL;
+        Expression *e = malloc(sizeof(Expression));
+        e->tag = EXPR_LT;
+        e->expr_union.bin_op.left = $1;
+        e->expr_union.bin_op.right = $3;
+        $$ = e;
     }
     | Expression GT_TOK Expression
     {
-        $$ = NULL;
+        Expression *e = malloc(sizeof(Expression));
+        e->tag = EXPR_GT;
+        e->expr_union.bin_op.left = $1;
+        e->expr_union.bin_op.right = $3;
+        $$ = e;
     }
     | Expression ADD_TOK Expression
     {
-        $$ = NULL;
+        Expression *e = malloc(sizeof(Expression));
+        e->tag = EXPR_ADD;
+        e->expr_union.bin_op.left = $1;
+        e->expr_union.bin_op.right = $3;
+        $$ = e;
     }
     | Expression SUB_TOK Expression
     {
-        $$ = NULL;
+        Expression *e = malloc(sizeof(Expression));
+        e->tag = EXPR_SUB;
+        e->expr_union.bin_op.left = $1;
+        e->expr_union.bin_op.right = $3;
+        $$ = e;
     }
     | Expression MUL_TOK Expression
     {
-        $$ = NULL;
+        Expression *e = malloc(sizeof(Expression));
+        e->tag = EXPR_MUL;
+        e->expr_union.bin_op.left = $1;
+        e->expr_union.bin_op.right = $3;
+        $$ = e;
     }
     | Expression DIV_TOK Expression
     {
-        $$ = NULL;
+        Expression *e = malloc(sizeof(Expression));
+        e->tag = EXPR_DIV;
+        e->expr_union.bin_op.left = $1;
+        e->expr_union.bin_op.right = $3;
+        $$ = e;
     }
     | Expression MOD_TOK Expression
     {
-        $$ = NULL;
+        Expression *e = malloc(sizeof(Expression));
+        e->tag = EXPR_MOD;
+        e->expr_union.bin_op.left = $1;
+        e->expr_union.bin_op.right = $3;
+        $$ = e;
     }
     | NOT_TOK Expression
     {
-        $$ = NULL;
+        Expression *e = malloc(sizeof(Expression));
+        e->tag = EXPR_NOT;
+        e->expr_union.un_op = $2;
+        $$ = e;
     }
     | SUB_TOK Expression %prec UMINUS_TOK
     {
-        $$ = NULL;
+        Expression *e = malloc(sizeof(Expression));
+        e->tag = EXPR_UMINUS;
+        e->expr_union.un_op = $2;
+        $$ = e;
     }
     | LPAREN_TOK Expression RPAREN_TOK
     {
-        $$ = NULL;
+        Expression *e = malloc(sizeof(Expression));
+        e->tag = EXPR_UMINUS;
+        e->expr_union.un_op = $2;
+        $$ = e;
     }
     | Identifier LPAREN_TOK ArgumentList RPAREN_TOK
     {
-        $$ = NULL;
+        Expression *e = malloc(sizeof(Expression));
+        e->tag = EXPR_FCALL;
+        e->expr_union.fcall.ident = $1;
+        e->expr_union.fcall.al_head = $3.head;
+        e->expr_union.fcall.al_tail = $3.tail;
+        $$ = e;
     }
     | CHR_TOK LPAREN_TOK Expression RPAREN_TOK
     {
-        $$ = NULL;
+        Expression *e = malloc(sizeof(Expression));
+        e->tag = EXPR_CHR;
+        e->expr_union.un_op = $3;
+        $$ = e;
     }
     | ORD_TOK LPAREN_TOK Expression RPAREN_TOK
     {
-        $$ = NULL;
+        Expression *e = malloc(sizeof(Expression));
+        e->tag = EXPR_ORD;
+        e->expr_union.un_op = $3;
+        $$ = e;
     }
     | PRED_TOK LPAREN_TOK Expression RPAREN_TOK
     {
-        $$ = NULL;
+        Expression *e = malloc(sizeof(Expression));
+        e->tag = EXPR_PRED;
+        e->expr_union.un_op = $3;
+        $$ = e;
     }
     | SUCC_TOK LPAREN_TOK Expression RPAREN_TOK
     {
-        $$ = NULL;
+        Expression *e = malloc(sizeof(Expression));
+        e->tag = EXPR_SUCC;
+        e->expr_union.un_op = $3;
+        $$ = e;
     }
     | LValue
     {
-        $$ = NULL;
+        Expression *e = malloc(sizeof(Expression));
+        e->tag = EXPR_LVALUE;
+        e->expr_union.lvalue = $1;
+        $$ = e;
     }
     | INT_LITERAL_TOK
     {
-        $$ = NULL;
+        Expression *e = malloc(sizeof(Expression));
+        e->tag = EXPR_INT;
+        e->expr_union.int_literal = $1;
+        $$ = e;
     }
     | FLOAT_LITERAL_TOK
     {
-        $$ = NULL;
+        Expression *e = malloc(sizeof(Expression));
+        e->tag = EXPR_FLOAT;
+        e->expr_union.float_literal = $1;
+        $$ = e;
     }
     | CHAR_LITERAL_TOK
     {
-        $$ = NULL;
+        Expression *e = malloc(sizeof(Expression));
+        e->tag = EXPR_CHAR;
+        e->expr_union.char_literal = $1;
+        $$ = e;
     }
     | STRING_LITERAL_TOK
     {
-        $$ = NULL;
+        Expression *e = malloc(sizeof(Expression));
+        e->tag = EXPR_STR;
+        e->expr_union.str_literal = $1;
+        $$ = e;
     }
     | TRUE_TOK
     {
-        $$ = NULL;
+        Expression *e = malloc(sizeof(Expression));
+        e->tag = EXPR_BOOL;
+        e->expr_union.bool_literal = $1;
+        $$ = e;
     }
     | FALSE_TOK
     {
-        $$ = NULL;
+        Expression *e = malloc(sizeof(Expression));
+        e->tag = EXPR_BOOL;
+        e->expr_union.bool_literal = $1;
+        $$ = e;
     }
 
 LValue:
     Identifier
     {
-        $$ = NULL;
+        LValue *lvalue = malloc(sizeof(LValue));
+        lvalue->tag = LV_IDENT;
+        lvalue->lv_union.ident = $1;
+        $$ = lvalue;
     }
     | LValue MEMBER_TOK Identifier
     {
-        $$ = NULL;
+        LValue *lvalue = malloc(sizeof(LValue));
+        lvalue->tag = LV_MEMBER:
+        lvalue->lv_union.lv_member.ident = $3;
+        lvalue->lv_union.lv_member.parent_lv = $1;
+        $$ = lvalue;
     }
     | LValue LBRACKET_TOK Expression RBRACKET_TOK
     {
-        $$ = NULL;
+        LValue *lvalue = malloc(sizeof(LValue));
+        lvalue->tag = LV_ARRAY;
+        lvalue->lv_union.lv_array.index_expr = $3;
+        lvalue->lv_union.lv_array.parent_lv = $1;
+        $$ = lvalue;
     }
 
 Identifier:
     IDENTIFIER_TOK
     {
-        $$ = NULL;
+        Identifier *ident = malloc(sizeof(Identifier));
+        ident->name = $1;
+        $$ = ident;
     }
 
 %%

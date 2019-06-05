@@ -280,7 +280,7 @@ typedef enum ExpressionTag {
     EXPR_OR, EXPR_AND, EXPR_EQ, EXPR_NEQ, EXPR_LE, EXPR_GE, EXPR_LT, EXPR_GT,
     EXPR_ADD, EXPR_SUB, EXPR_MUL, EXPR_DIV, EXPR_MOD, EXPR_NOT, EXPR_UMINUS,
     EXPR_PAREN, EXPR_FCALL, EXPR_CHR, EXPR_ORD, EXPR_PRED, EXPR_SUCC,
-    EXPR_LVALUE, EXPR_INT, EXPR_FLOAT, EXPR_CHAR, EXPR_STR
+    EXPR_LVALUE, EXPR_INT, EXPR_FLOAT, EXPR_CHAR, EXPR_STR, EXPR_BOOL
 } ExpressionTag;
 
 typedef struct Expression {
@@ -290,14 +290,18 @@ typedef struct Expression {
             struct Expression *left;
             struct Expression *right;
         } bin_op;
+        struct Expression *un_op;
         struct {
-            struct Expression *sub_expr;
-        } un_op;
+            Identifier *ident;
+            ArgumentList *al_head;
+            ArgumentList *al_tail;
+        } fcall;
         struct LValue *lvalue;
         int int_literal;
         float float_literal;
         char char_literal;
         char *str_literal;
+        bool bool_literal;
     } expr_union;
 } Expression;
 
