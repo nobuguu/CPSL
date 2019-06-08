@@ -23,6 +23,8 @@ set(cpsl_srcs
     ../preprocess.c
     ../error.h
     ../error.c
+    ../register_pool.h
+    ../register_pool.c
     ../main.c
     ${BISON_Parser_OUTPUTS}
     ${FLEX_Scanner_OUTPUTS}

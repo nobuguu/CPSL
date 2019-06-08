@@ -18,6 +18,7 @@ Program *pt_root;
 %code requires {
     #include "../parse_tree.h"
     #include "../symbol_table.h"
+    #include "../error.h"
 }
 
 %verbose
@@ -438,7 +439,7 @@ ConstantDecl:
         c_decl->cdl_head = $2.head;
         c_decl->cdl_tail = $2.tail;
         for (ConstDeclList *c = c_decl->cdl_head; c != NULL; c = c->next) {
-            add_to_table(ST_CONST, c->ident, c->expr);
+            add_const_to_table(c->ident, c->expr);
         }
         $$ = c_decl;
     }
@@ -473,6 +474,24 @@ SubroutineDecl:
         s_decl->sdl_head = $1.head;
         s_decl->sdl_tail = $1.tail;
         for (SubroutineDeclList *s = s_decl->sdl_head; s != NULL; s = s->next) {
+            switch (s->tag) {
+                case SDL_PROC:
+                    {
+                        ProcedureDecl *p = s->sdl_union.p_decl;
+                        add_sub_to_table(p->ident, p->fpl_head, p->fpl_tail,
+                            NULL, p->body);
+                    }
+                    break;
+                case SDL_FUNC:
+                    {
+                        FunctionDecl *f = s->sdl_union.f_decl;
+                        add_sub_to_table(f->ident, f->fpl_head, f->fpl_tail,
+                            f->return_type, f->body);
+                    }
+                    break;
+                default:
+                    panic("unknown enum in subroutine decl");
+            }
         }
         $$ = s_decl;
     }
@@ -766,7 +785,12 @@ TypeDecl:
         t_decl->tdl_head = $2.head;
         t_decl->tdl_tail = $2.tail;
         $$ = t_decl;
+        for (TypeDeclList *t = t_decl->tdl_head; t != NULL; t = t->next) {
+            add_type_to_table(t->ident, t->type);
+        }
     }
+
+/* TODO consider a mid-rule action to resolve the RHS into a known type */
 
 TypeDeclList:
     Identifier EQUALS_TOK Type SEMICOLON_TOK
@@ -849,10 +873,10 @@ SimpleType:
         s->ident = ident;
         $$ = s;
     }
-    | Identifier
+    | KnownIdentifier
     {
         SimpleType *s = malloc(sizeof(SimpleType));
-        s->ident = $1;
+        s->ident = $<ident_ptr>1;
         $$ = s;
     }
 
@@ -934,6 +958,11 @@ VarDecl:
         VarDecl *v_decl = malloc(sizeof(VarDecl));
         v_decl->vdl_head = $2.head;
         v_decl->vdl_tail = $2.tail;
+        for (VarDeclList *v = v_decl->vdl_head; v != NULL; v = v->next) {
+            for (IdentList *i = v->il_head; i != NULL; i = i->next) {
+                add_var_to_table(i->ident, v->type);
+            }
+        }
         $$ = v_decl;
     }
 
@@ -1035,7 +1064,6 @@ Statement:
     }
     | ReadStatement
     {
-        $$ = NULL;
         Statement *s = malloc(sizeof(Statement));
         s->tag = STMT_READ;
         s->stmt_union.read_stmt = $1;
@@ -1043,7 +1071,6 @@ Statement:
     }
     | WriteStatement
     {
-        $$ = NULL;
         Statement *s = malloc(sizeof(Statement));
         s->tag = STMT_WRITE;
         s->stmt_union.write_stmt = $1;
@@ -1051,7 +1078,6 @@ Statement:
     }
     | ProcedureCall
     {
-        $$ = NULL;
         Statement *s = malloc(sizeof(Statement));
         s->tag = STMT_PCALL;
         s->stmt_union.pcall_stmt = $1;
@@ -1543,14 +1569,14 @@ LValue:
     {
         LValue *lvalue = malloc(sizeof(LValue));
         lvalue->tag = LV_IDENT;
-        lvalue->lv_union.ident = $1;
+        lvalue->lv_union.ident = $<ident_ptr>1;
         $$ = lvalue;
     }
     | LValue MEMBER_TOK Identifier
     {
         LValue *lvalue = malloc(sizeof(LValue));
         lvalue->tag = LV_MEMBER;
-        lvalue->lv_union.lv_member.ident = $3;
+        lvalue->lv_union.lv_member.ident = $<ident_ptr>3;
         lvalue->lv_union.lv_member.parent_lv = $1;
         $$ = lvalue;
     }
@@ -1569,6 +1595,12 @@ Identifier:
         Identifier *ident = malloc(sizeof(Identifier));
         ident->name = $1;
         $$ = ident;
+    }
+
+KnownIdentifier:
+    IDENTIFIER_TOK
+    {
+        $<ident_ptr>$ = lookup_ident_by_name(ST_CONST, $1);
     }
 
 %%

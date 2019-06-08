@@ -28,28 +28,9 @@ void init_table(void) {
         Type *t = malloc(sizeof(Type));
         t->tag = TYPE_SIMPLE;
         t->type_union.simple = simple;
-        add_to_table(ST_TYPE, ident, t);
+        add_type_to_table(ident, t);
     }
     push_table();
-}
-
-void add_to_table(SymbolTableTag tag, Identifier *ident, void *symbol) {
-    switch (tag) {
-        case ST_CONST:
-            add_const_to_table( ident, (Expression*) symbol);
-            break;
-        case ST_TYPE:
-            add_type_to_table( ident, (Type*) symbol);
-            break;
-        case ST_VAR:
-            add_var_to_table( ident, (Type*) symbol);
-            break;
-        case ST_SUB:
-            add_sub_to_table( ident, (SubroutineDecl*) symbol);
-            break;
-        default:
-            panic("add_to_table(): invalid enum");
-    }
 }
 
 void add_const_to_table(Identifier *ident, Expression *c_decl) {
@@ -76,10 +57,14 @@ void add_var_to_table(Identifier *ident, Type *v_decl) {
     global_symbol_context->sym_t->v_table = v_table;
 }
 
-void add_sub_to_table(Identifier *ident, SubroutineDecl *s_decl) {
+void add_sub_to_table(Identifier *ident, FormalParameterList *fpl_head,
+        FormalParameterList *fpl_tail, Type *return_type, Body *body) {
     SubroutineTable *s_table = malloc(sizeof(SubroutineTable));
     s_table->ident = ident;
-    s_table->s_decl = s_decl;
+    s_table->fpl_head = fpl_head;
+    s_table->fpl_tail = fpl_tail;
+    s_table->return_type = return_type;
+    s_table->body = body;
     s_table->next = global_symbol_context->sym_t->s_table;
     global_symbol_context->sym_t->s_table = s_table;
 }
@@ -101,8 +86,41 @@ void pop_table(void) {
     global_symbol_context = c;
 }
 
-void *lookup_by_ident(SymbolTableTag tag, void *ident) {
-}
-
-void *lookup_ident_by_name(SymbolTableTag tag, char *name) {
+Identifier *lookup_ident_by_name(SymbolTableTag tag, char *name) {
+    for (Context *c = global_symbol_context; c != NULL; c = c->next) {
+        SymbolTable *s = c->sym_t;
+        switch (tag) {
+            case ST_CONST:
+                for (ConstTable *c = s->c_table; c != NULL; c = c->next) {
+                    if (strcmp(c->ident->name, name) == 0) {
+                        return c->ident;
+                    }
+                }
+                panic("get_ident_by_name() could not find constant in table");
+            case ST_TYPE:
+                for (TypeTable *t = s->t_table; t != NULL; t = t->next) {
+                    if (strcmp(t->ident->name, name) == 0) {
+                        return t->ident;
+                    }
+                }
+                panic("get_ident_by_name() could not find type in table");
+            case ST_VAR:
+                for (VarTable *v = s->v_table; v != NULL; v = v->next) {
+                    if (strcmp(v->ident->name, name) == 0) {
+                        return v->ident;
+                    }
+                }
+                panic("get_ident_by_name() could not find var in table");
+            case ST_SUB:
+                for (SubroutineTable *st = s->s_table; st != NULL; st = st->next) {
+                    if (strcmp(st->ident->name, name) == 0) {
+                        return st->ident;
+                    }
+                }
+                panic("get_ident_by_name() could not find subroutine in table");
+            default:
+                panic("get_ident_by_name() invalid symbol table tag");
+        }
+    }
+    panic("get_ident_by_name() ran out of contexts to search for a name");
 }

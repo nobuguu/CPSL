@@ -85,7 +85,7 @@ false|FALSE { yylval.bool_literal = false; return FALSE_TOK; }
 
 [-+]?[0-9]*\.[0-9]+([eE][-+]?[0-9]+)? { yylval.float_literal = atof(yytext); return FLOAT_LITERAL_TOK; }
 
-\'(\\.|[^"\\])\' { yylval.char_literal = yytext[0]; return CHAR_LITERAL_TOK; }
+\'(\\.|[^"\\])\' { yylval.char_literal = yytext[1]; return CHAR_LITERAL_TOK; }
 \"(\\.|[^"\\])*\" { yylval.str_literal = strdup(yytext); return STRING_LITERAL_TOK; }
 
 [ \t]* { /* consume whitespace */ }

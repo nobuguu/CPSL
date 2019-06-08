@@ -37,7 +37,10 @@ typedef struct VarTable {
 
 typedef struct SubroutineTable {
     Identifier *ident;
-    SubroutineDecl *s_decl;
+    FormalParameterList *fpl_head;
+    FormalParameterList *fpl_tail;
+    Type *return_type;
+    Body *body;
     struct SubroutineTable *next;
 } SubroutineTable;
 
@@ -53,10 +56,12 @@ void add_to_table(SymbolTableTag, Identifier*, void*);
 void add_const_to_table(Identifier*, Expression*);
 void add_type_to_table(Identifier*, Type*);
 void add_var_to_table(Identifier*, Type*);
-void add_sub_to_table(Identifier*, SubroutineDecl*);
+void add_sub_to_table(Identifier*, FormalParameterList*, FormalParameterList*,
+        Type*, Body*);
 void push_table(void);
 void pop_table(void);
-void *lookup_by_ident(SymbolTableTag, void*);
-void *lookup_ident_by_name(SymbolTableTag, char*);
+void *lookup_by_ident(SymbolTableTag, Identifier*);
+Type *lookup_type_by_ident(Identifier*);
+Identifier *lookup_ident_by_name(SymbolTableTag, char*);
 
 #endif
